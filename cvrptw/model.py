@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import numpy as np
+
 
 @dataclass(frozen=True, repr=False)
 class Customer:
@@ -11,13 +13,13 @@ class Customer:
     due_date: int
     service_time: int
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f"Customer: <{self.cust_id:3}, {self.x:2}, {self.y:2}, {self.demand:2}, "
                 f"{self.ready_time:3}, {self.due_date:4}, {self.service_time:2}>")
 
 
 class Vehicle:
-    def __init__(self, capacity, depot, distances):
+    def __init__(self, capacity: int, depot: Customer, distances: np.ndarray) -> None:
         self.depot = depot
         self.route = [depot]
         self.time_points = [depot.ready_time]
@@ -28,7 +30,7 @@ class Vehicle:
         self.distances = [0]
         self._distance = 0.0
 
-    def can_visit(self, c):
+    def can_visit(self, c: Customer) -> bool:
         if self.left_capacity < c.demand:
             return False
         travel_time = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
@@ -37,7 +39,7 @@ class Vehicle:
         time_to_depot = self.dist_matrix[c.cust_id][self.depot.cust_id]
         return self.total_time + travel_time + c.service_time + time_to_depot < self.depot.due_date
 
-    def visit(self, c):
+    def visit(self, c: Customer) -> None:
         self.left_capacity -= c.demand
         distance_to_customer = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
         self.distances.append(distance_to_customer)
@@ -49,13 +51,13 @@ class Vehicle:
         self.total_time += c.service_time
         self.route.append(c)
 
-    def length(self):
+    def length(self) -> int:
         return len(self.route)
 
-    def distance(self):
+    def distance(self) -> float:
         return self._distance
 
-    def print_info(self):
+    def print_info(self) -> None:
         for c, time, dist in zip(self.route, self.time_points, self.distances):
             print(f"{c.cust_id:3} demand={c.demand:2} dist={dist:6.3f} "
                   f"time={time:7.2f} tw=({c.ready_time:3},{c.due_date:4}) "
@@ -63,23 +65,23 @@ class Vehicle:
         print(f"Final time = {self.total_time:5.3f}, distance = {self.distance():6.2f}, "
               f"length={self.length():2}, left_capacity = {self.left_capacity}")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str([c.cust_id for c in self.route])
 
 
-def get_time(solution):
+def get_time(solution: list[Vehicle]) -> float:
     return sum(v.total_time for v in solution)
 
 
-def get_distance(solution):
+def get_distance(solution: list[Vehicle]) -> float:
     return sum(v.distance() for v in solution)
 
 
-def remove_empty_routes(sol):
+def remove_empty_routes(sol: list[Vehicle]) -> list[Vehicle]:
     return [v for v in sol if v.length() > 2]
 
 
-def print_solution_info(solution, verbose=False):
+def print_solution_info(solution: list[Vehicle], verbose: bool = False) -> None:
     print(f"Total solution time = {get_time(solution):.2f}, "
           f"distance = {get_distance(solution):.2f}, vehicles = {len(solution)}:")
     for i, v in enumerate(sorted(solution, key=lambda v: v.distance())):

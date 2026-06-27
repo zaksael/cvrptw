@@ -1,9 +1,12 @@
+from pathlib import Path
+
+import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 
-from .model import Customer
+from .model import Customer, Vehicle
 
 
-def read_instance_data(file_path):
+def read_instance_data(file_path: str | Path) -> tuple[int, int, list[Customer]]:
     customers = []
     with open(file_path, 'r') as f:
         for i, line in enumerate(f.readlines(), start=1):
@@ -18,12 +21,12 @@ def read_instance_data(file_path):
     return n_vehicles, capacity, customers
 
 
-def calculate_distances(customers):
+def calculate_distances(customers: list[Customer]) -> np.ndarray:
     coords = [(c.x, c.y) for c in customers]
     return euclidean_distances(coords, coords)
 
 
-def save_solution(file_path, sol):
+def save_solution(file_path: str | Path, sol: list[Vehicle]) -> None:
     lines = []
     for v in sol:
         parts = [f"{c.cust_id} {t:.4f}" for c, t in zip(v.route, v.time_points)]

@@ -1,11 +1,11 @@
 import copy
 import random
 
-from .model import remove_empty_routes
+from .model import remove_empty_routes, Vehicle
 from .operators import check_route, cross, customer_indices, exchange, relocate
 
 
-def local_search(sol, max_attempts=200_000):
+def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool, list[Vehicle]]:
     class _LimitReached(Exception):
         pass
 
@@ -80,8 +80,8 @@ def local_search(sol, max_attempts=200_000):
     return changes_made, result
 
 
-def perturbation(solution, n_moves=5):
-    moved_ids: set = set()
+def perturbation(solution: list[Vehicle], n_moves: int = 5) -> tuple[bool, list[Vehicle]]:
+    moved_ids: set[int] = set()
 
     def inter_relocate(sol):
         result = copy.deepcopy(sol)

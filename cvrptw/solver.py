@@ -2,11 +2,11 @@ import time
 
 import numpy as np
 
-from .model import Vehicle, get_distance
+from .model import Customer, Vehicle, get_distance
 from .search import local_search, perturbation
 
 
-def run_vehicle(customers, distances, capacity, depot):
+def run_vehicle(customers: list[Customer], distances: np.ndarray, capacity: int, depot: Customer) -> Vehicle:
     def most_suitable(current, candidates):
         values = [distances[current.cust_id][c.cust_id] * c.ready_time * c.due_date
                   for c in candidates]
@@ -25,7 +25,7 @@ def run_vehicle(customers, distances, capacity, depot):
     return v
 
 
-def get_greedy_solution(customers, distances, n_vehicles, vehicle_capacity):
+def get_greedy_solution(customers: list[Customer], distances: np.ndarray, n_vehicles: int, vehicle_capacity: int) -> list[Vehicle]:
     solution = []
     depot = customers[0]
     candidates = customers[1:]
@@ -38,13 +38,13 @@ def get_greedy_solution(customers, distances, n_vehicles, vehicle_capacity):
     return solution
 
 
-def ls_attempts_and_time_limit(n_vehicles, n_customers):
+def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, int]:
     if n_vehicles > 25 or n_customers > 101:
         return 1_000_000, 1800
     return 250_000, 600
 
 
-def ils(sol, max_ls_attempts, n_perturbation_moves, time_limit):
+def ils(sol: list[Vehicle], max_ls_attempts: int, n_perturbation_moves: int, time_limit: int) -> tuple[int, list[Vehicle]]:
     best_sol = current_sol = sol
     best_dist = get_distance(best_sol)
     made_iters = 0

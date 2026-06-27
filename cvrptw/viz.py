@@ -1,10 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import matplotlib.cm as cmx
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 
+if TYPE_CHECKING:
+    from .model import Vehicle
 
-def draw_solution(sol, title=''):
+
+def draw_solution(sol: list[Vehicle], title: str = '') -> None:
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     scalar_map = cmx.ScalarMappable(
@@ -24,7 +31,7 @@ def draw_solution(sol, title=''):
     plt.show()
 
 
-def draw_best_solutions(values):
+def draw_best_solutions(values: np.ndarray) -> None:
     fig = plt.figure(figsize=(20, 30))
     for i, (name, distance, vehicles, sol) in enumerate(values, start=1):
         ax = fig.add_subplot(5, 2, i)

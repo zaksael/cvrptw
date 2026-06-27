@@ -28,6 +28,6 @@ def exchange(v1, i, v2, j):
 def relocate(v1, i, v2, j):
     r1, r2 = v1.route[:], v2.route[:]
     c = r1[i]
-    r1.remove(c)
+    del r1[i]
     r2.insert(j, c)
     return r1, r2

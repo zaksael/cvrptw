@@ -23,6 +23,7 @@ class Vehicle:
         self.d = distances
         self.total_time = 0
         self.distances = [0]
+        self._distance = 0.0
 
     def can_visit(self, c):
         if self.left_capacity < c.demand:
@@ -37,6 +38,7 @@ class Vehicle:
         self.left_capacity -= c.demand
         distance_to_customer = self.d[self.route[-1].cust_id][c.cust_id]
         self.distances.append(distance_to_customer)
+        self._distance += distance_to_customer
         self.total_time += distance_to_customer
         if self.total_time < c.ready_time:
             self.total_time = c.ready_time
@@ -48,7 +50,7 @@ class Vehicle:
         return len(self.route)
 
     def distance(self):
-        return sum(self.distances)
+        return self._distance
 
     def print_info(self):
         for c, time, dist in zip(self.route, self.time_points, self.distances):

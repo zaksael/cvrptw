@@ -26,7 +26,7 @@ def local_search(sol, max_attempts=200_000):
                     _count()
                     new_route = copy.deepcopy(v.route)
                     c = new_route[i]
-                    new_route.remove(c)
+                    del new_route[i]
                     new_route.insert(j, c)
                     valid, new_v = check_route(new_route, v.initial_capacity, v.d)
                     if valid and best_v.distance() - new_v.distance() > 1e-3:
@@ -37,9 +37,9 @@ def local_search(sol, max_attempts=200_000):
     def apply_operator(sol, operator, with_last):
         result = copy.deepcopy(sol)
         random.shuffle(result)
-        for v1 in result:
-            for v2 in result:
-                if v1 is v2:
+        for idx1, v1 in enumerate(result):
+            for idx2, v2 in enumerate(result):
+                if idx1 == idx2:
                     continue
                 for i in rng(v1, with_last):
                     for j in rng(v2, with_last):
@@ -50,8 +50,8 @@ def local_search(sol, max_attempts=200_000):
                         if ok1 and ok2:
                             gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
                             if gain > 1e-3:
-                                result[result.index(v1)] = nv1
-                                result[result.index(v2)] = nv2
+                                result[idx1] = nv1
+                                result[idx2] = nv2
                                 return True, remove_empty_routes(result)
         return False, result
 

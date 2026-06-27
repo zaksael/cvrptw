@@ -119,6 +119,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pandas-stubs" },
+    { name = "pytest" },
     { name = "scikit-learn" },
 ]
 
@@ -134,6 +135,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.5.0" },
     { name = "pandas", specifier = ">=3.0.3" },
     { name = "pandas-stubs", specifier = "~=3.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
 ]
 

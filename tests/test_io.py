@@ -2,8 +2,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from cvrptw.io import read_instance_data, save_solution
 from cvrptw.model import Vehicle
 

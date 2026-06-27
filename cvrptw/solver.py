@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from .model import Vehicle, get_distance, remove_empty_routes
+from .model import Vehicle, get_distance
 from .search import local_search, perturbation
 
 

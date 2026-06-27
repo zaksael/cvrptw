@@ -1,9 +1,5 @@
 from types import SimpleNamespace
 
-import numpy as np
-import pytest
-
-from cvrptw.model import Customer, Vehicle
 from cvrptw.operators import check_route, cross, exchange, relocate
 
 

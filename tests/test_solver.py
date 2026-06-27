@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 
 from cvrptw.io import calculate_distances, read_instance_data
-from cvrptw.model import get_distance
 from cvrptw.operators import check_route
 from cvrptw.solver import get_greedy_solution
 

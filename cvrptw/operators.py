@@ -1,7 +1,7 @@
 from .model import Vehicle
 
 
-def rng(v, with_last):
+def customer_indices(v, with_last):
     return range(1, v.length()) if with_last else range(1, v.length() - 1)
 
 

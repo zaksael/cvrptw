@@ -23,7 +23,7 @@ class Vehicle:
         self.time_points = [depot.ready_time]
         self.initial_capacity = capacity
         self.left_capacity = capacity
-        self.d = distances
+        self.dist_matrix = distances
         self.total_time = 0
         self.distances = [0]
         self._distance = 0.0
@@ -31,15 +31,15 @@ class Vehicle:
     def can_visit(self, c):
         if self.left_capacity < c.demand:
             return False
-        travel_time = self.d[self.route[-1].cust_id][c.cust_id]
+        travel_time = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
         if self.total_time + travel_time >= c.due_date:
             return False
-        time_to_depot = self.d[c.cust_id][self.depot.cust_id]
+        time_to_depot = self.dist_matrix[c.cust_id][self.depot.cust_id]
         return self.total_time + travel_time + c.service_time + time_to_depot < self.depot.due_date
 
     def visit(self, c):
         self.left_capacity -= c.demand
-        distance_to_customer = self.d[self.route[-1].cust_id][c.cust_id]
+        distance_to_customer = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
         self.distances.append(distance_to_customer)
         self._distance += distance_to_customer
         self.total_time += distance_to_customer

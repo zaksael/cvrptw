@@ -2,7 +2,7 @@ import copy
 import random
 
 from .model import remove_empty_routes
-from .operators import check_route, cross, exchange, relocate, rng
+from .operators import check_route, cross, customer_indices, exchange, relocate
 
 
 def local_search(sol, max_attempts=200_000):
@@ -21,7 +21,6 @@ def local_search(sol, max_attempts=200_000):
         result = copy.deepcopy(sol)
         random.shuffle(result)
         for v_i, v in enumerate(result):
-            best_v = v
             for i in range(1, v.length() - 1):
                 for j in range(1, v.length() - 1):
                     if i == j:
@@ -31,8 +30,8 @@ def local_search(sol, max_attempts=200_000):
                     c = new_route[i]
                     del new_route[i]
                     new_route.insert(j, c)
-                    valid, new_v = check_route(new_route, v.initial_capacity, v.d)
-                    if valid and best_v.distance() - new_v.distance() > 1e-3:
+                    valid, new_v = check_route(new_route, v.initial_capacity, v.dist_matrix)
+                    if valid and v.distance() - new_v.distance() > 1e-3:
                         result[v_i] = new_v
                         return True, result
         return False, result
@@ -44,12 +43,12 @@ def local_search(sol, max_attempts=200_000):
             for idx2, v2 in enumerate(result):
                 if idx1 == idx2:
                     continue
-                for i in rng(v1, with_last):
-                    for j in rng(v2, with_last):
+                for i in customer_indices(v1, with_last):
+                    for j in customer_indices(v2, with_last):
                         _count()
                         r1, r2 = operator(v1, i, v2, j)
-                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.d)
-                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.d)
+                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
+                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
                         if ok1 and ok2:
                             gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
                             if gain > 1e-3:
@@ -94,8 +93,8 @@ def perturbation(solution, n_moves=5):
                 for i in range(1, v1.length() - 1):
                     for j in range(1, v2.length() - 1):
                         r1, r2 = relocate(v1, i, v2, j)
-                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.d)
-                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.d)
+                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
+                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
                         if ok1 and ok2:
                             c_id = v1.route[i].cust_id
                             if c_id in moved_ids:

@@ -9,9 +9,12 @@ def local_search(sol, max_attempts=200_000):
     class _LimitReached(Exception):
         pass
 
+    n_attempts = 0
+
     def _count():
-        local_search.n_attempts += 1
-        if local_search.n_attempts == local_search.max_attempts:
+        nonlocal n_attempts
+        n_attempts += 1
+        if n_attempts == max_attempts:
             raise _LimitReached
 
     def intra_relocate(sol):
@@ -55,8 +58,6 @@ def local_search(sol, max_attempts=200_000):
                                 return True, remove_empty_routes(result)
         return False, result
 
-    local_search.n_attempts = 0
-    local_search.max_attempts = max_attempts
     result = sol
     changes_made = False
     can_move = True
@@ -81,6 +82,8 @@ def local_search(sol, max_attempts=200_000):
 
 
 def perturbation(solution, n_moves=5):
+    moved_ids: set = set()
+
     def inter_relocate(sol):
         result = copy.deepcopy(sol)
         random.shuffle(result)
@@ -95,15 +98,14 @@ def perturbation(solution, n_moves=5):
                         ok2, nv2 = check_route(r2, v2.initial_capacity, v2.d)
                         if ok1 and ok2:
                             c_id = v1.route[i].cust_id
-                            if c_id in perturbation.moved_ids:
+                            if c_id in moved_ids:
                                 continue
                             result[v1_idx] = nv1
                             result[v2_idx] = nv2
-                            perturbation.moved_ids.add(c_id)
+                            moved_ids.add(c_id)
                             return True, remove_empty_routes(result)
         return False, result
 
-    perturbation.moved_ids = set()
     result = solution
     changes_made = False
     for _ in range(n_moves):

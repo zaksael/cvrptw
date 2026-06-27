@@ -1,12 +1,15 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, repr=False)
 class Customer:
-    def __init__(self, cust_id, x, y, demand, ready_time, due_date, service_time):
-        self.cust_id = cust_id
-        self.x = x
-        self.y = y
-        self.demand = demand
-        self.ready_time = ready_time
-        self.due_date = due_date
-        self.service_time = service_time
+    cust_id: int
+    x: int
+    y: int
+    demand: int
+    ready_time: int
+    due_date: int
+    service_time: int
 
     def __repr__(self):
         return (f"Customer: <{self.cust_id:3}, {self.x:2}, {self.y:2}, {self.demand:2}, "

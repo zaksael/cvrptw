@@ -65,6 +65,7 @@ class Vehicle:
         self.initial_capacity = capacity
         self.left_capacity = capacity
         self.dist_matrix = distances
+        self._depot = depot
         self.route = Route(
             customers=[depot],
             time_points=[float(depot.ready_time)],
@@ -74,7 +75,7 @@ class Vehicle:
 
     @property
     def depot(self) -> Customer:
-        return self.route.depot
+        return self._depot
 
     @property
     def total_time(self) -> float:
@@ -86,8 +87,9 @@ class Vehicle:
         travel_time = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
         if self._departure_time + travel_time > c.due_date:
             return False
-        time_to_depot = self.dist_matrix[c.cust_id][self.depot.cust_id]
-        return self._departure_time + travel_time + c.service_time + time_to_depot <= self.depot.due_date
+        depot = self._depot
+        time_to_depot = self.dist_matrix[c.cust_id][depot.cust_id]
+        return self._departure_time + travel_time + c.service_time + time_to_depot <= depot.due_date
 
     def visit(self, c: Customer) -> None:
         self.left_capacity -= c.demand

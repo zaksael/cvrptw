@@ -18,6 +18,22 @@ class Customer:
                 f"{self.ready_time:3}, {self.due_date:4}, {self.service_time:2}>")
 
 
+@dataclass(eq=False)
+class Instance:
+    n_vehicles: int
+    capacity: int
+    customers: list[Customer]
+    distances: np.ndarray
+
+    @property
+    def depot(self) -> Customer:
+        return self.customers[0]
+
+    def __repr__(self) -> str:
+        return (f"Instance(n_vehicles={self.n_vehicles}, capacity={self.capacity}, "
+                f"customers={len(self.customers)}, distances={self.distances.shape})")
+
+
 class Vehicle:
     def __init__(self, capacity: int, depot: Customer, distances: np.ndarray) -> None:
         self.depot = depot

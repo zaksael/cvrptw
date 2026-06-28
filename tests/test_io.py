@@ -2,26 +2,25 @@ import os
 import tempfile
 from pathlib import Path
 
-from cvrptw.io import read_instance_data, save_solution
+from cvrptw.io import load_instance, save_solution
 from cvrptw.model import Vehicle
 
 C108 = Path(__file__).parent.parent / 'ils' / 'resources' / 'instances' / 'C108.txt'
 
 
 def test_read_vehicle_and_capacity():
-    n_vehicles, capacity, _ = read_instance_data(C108)
-    assert n_vehicles == 25
-    assert capacity == 200
+    inst = load_instance(C108)
+    assert inst.n_vehicles == 25
+    assert inst.capacity == 200
 
 
 def test_read_customer_count_and_depot():
-    _, _, customers = read_instance_data(C108)
-    assert len(customers) == 101                        # depot + 100 customers
-    depot = customers[0]
-    assert depot.cust_id == 0
-    assert depot.demand == 0
-    assert depot.x == 40
-    assert depot.y == 50
+    inst = load_instance(C108)
+    assert len(inst.customers) == 101                   # depot + 100 customers
+    assert inst.depot.cust_id == 0
+    assert inst.depot.demand == 0
+    assert inst.depot.x == 40
+    assert inst.depot.y == 50
 
 
 def test_save_solution_format(tiny):

@@ -2,37 +2,36 @@ import time
 
 import numpy as np
 
-from .model import Customer, Vehicle, get_distance
+from .model import Customer, Instance, Vehicle, get_distance
 from .search import local_search, perturbation
 
 
-def run_vehicle(customers: list[Customer], distances: np.ndarray, capacity: int, depot: Customer) -> Vehicle:
+def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     def most_suitable(current, candidates):
-        values = [distances[current.cust_id][c.cust_id] * c.ready_time * c.due_date
+        values = [instance.distances[current.cust_id][c.cust_id] * c.ready_time * c.due_date
                   for c in candidates]
         return candidates[np.argmin(values)]
 
-    v = Vehicle(capacity, depot, distances)
-    candidates = customers[:]
-    while candidates:
-        if v.left_capacity < min(c.demand for c in candidates):
+    v = Vehicle(instance.capacity, instance.depot, instance.distances)
+    remaining = candidates[:]
+    while remaining:
+        if v.left_capacity < min(c.demand for c in remaining):
             break
-        candidate = most_suitable(v.route[-1], candidates)
+        candidate = most_suitable(v.route[-1], remaining)
         if v.can_visit(candidate):
             v.visit(candidate)
-        candidates.remove(candidate)
+        remaining.remove(candidate)
     v.visit(v.depot)
     return v
 
 
-def get_greedy_solution(customers: list[Customer], distances: np.ndarray, n_vehicles: int, vehicle_capacity: int) -> list[Vehicle]:
+def get_greedy_solution(instance: Instance) -> list[Vehicle]:
     solution = []
-    depot = customers[0]
-    candidates = customers[1:]
-    for _ in range(n_vehicles):
+    candidates = instance.customers[1:]
+    for _ in range(instance.n_vehicles):
         if not candidates:
             break
-        v = run_vehicle(candidates, distances, vehicle_capacity, depot)
+        v = run_vehicle(candidates, instance)
         solution.append(v)
         candidates = [c for c in candidates if c not in v.route]
     return solution

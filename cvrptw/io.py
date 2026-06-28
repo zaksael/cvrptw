@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 
-from .model import Customer, Vehicle
+from .model import Customer, Instance, Vehicle
 
 
-def read_instance_data(file_path: str | Path) -> tuple[int, int, list[Customer]]:
+def load_instance(file_path: str | Path) -> Instance:
     customers = []
     with open(file_path, 'r') as f:
         for i, line in enumerate(f.readlines(), start=1):
@@ -18,7 +18,7 @@ def read_instance_data(file_path: str | Path) -> tuple[int, int, list[Customer]]
             else:
                 cust_id, x, y, demand, ready_time, due_date, service_time = map(int, line.split())
                 customers.append(Customer(cust_id, x, y, demand, ready_time, due_date, service_time))
-    return n_vehicles, capacity, customers
+    return Instance(n_vehicles, capacity, customers, distances=calculate_distances(customers))
 
 
 def calculate_distances(customers: list[Customer]) -> np.ndarray:

@@ -31,14 +31,13 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
     v.initial_capacity = src.initial_capacity
     v.dist_matrix = src.dist_matrix
     v._depot = src._depot
-    v.left_capacity = src.initial_capacity - sum(
-        c.demand for c in src_customers[1:prefix_end + 1]
-    )
+    v.left_capacity = src.initial_capacity - src_route.demand_used[prefix_end]
     v._departure_time = src_tp[prefix_end] + src_customers[prefix_end].service_time
     v.route = Route(
         customers=src_customers[:prefix_end + 1],
         time_points=src_tp[:prefix_end + 1],
         leg_distances=leg_prefix,
+        demand_used=src_route.demand_used[:prefix_end + 1],
     )
     v.route._distance = sum(leg_prefix)
 

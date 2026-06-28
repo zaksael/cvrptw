@@ -38,8 +38,9 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
         time_points=src_tp[:prefix_end + 1],
         leg_distances=leg_prefix,
         demand_used=src_route.demand_used[:prefix_end + 1],
+        dist_used=src_route.dist_used[:prefix_end + 1],
     )
-    v.route._distance = sum(leg_prefix)
+    v.route._distance = src_route.dist_used[prefix_end]
 
     for c in route[prefix_end + 1:]:
         if not v.try_visit(c):

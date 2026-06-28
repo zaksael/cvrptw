@@ -40,6 +40,7 @@ class Route:
     time_points: list[float]
     leg_distances: list[float]
     demand_used: list[int] = field(default_factory=lambda: [0])
+    dist_used: list[float] = field(default_factory=lambda: [0.0])
     _distance: float = field(default=0.0, init=False, repr=False)
 
     @property
@@ -72,6 +73,7 @@ class Vehicle:
             time_points=[float(depot.ready_time)],
             leg_distances=[0.0],
             demand_used=[0],
+            dist_used=[0.0],
         )
         self._departure_time: float = 0.0
 
@@ -111,6 +113,7 @@ class Vehicle:
         route.time_points.append(arrival)
         route.customers.append(c)
         route.demand_used.append(route.demand_used[-1] + c.demand)
+        route.dist_used.append(route._distance + d)
         route._distance += d
         self._departure_time = arrival + c.service_time
         return True
@@ -123,6 +126,7 @@ class Vehicle:
         self.route.time_points.append(arrival)
         self.route.customers.append(c)
         self.route.demand_used.append(self.route.demand_used[-1] + c.demand)
+        self.route.dist_used.append(self.route._distance + d)
         self.route._distance += d
         self._departure_time = arrival + c.service_time
 

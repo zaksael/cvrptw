@@ -18,8 +18,7 @@ def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
         if v.left_capacity < min(c.demand for c in remaining):
             break
         candidate = most_suitable(v.route.customers[-1], remaining)
-        if v.can_visit(candidate):
-            v.visit(candidate)
+        v.try_visit(candidate)
         remaining.remove(candidate)
     v.visit(v.depot)
     return v

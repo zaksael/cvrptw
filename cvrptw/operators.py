@@ -10,9 +10,7 @@ def customer_indices(v: Vehicle, with_last: bool) -> range:
 def check_route(route: list[Customer], capacity: int, distances: np.ndarray) -> tuple[bool, Vehicle]:
     v = Vehicle(capacity, route[0], distances)
     for c in route[1:]:
-        if v.can_visit(c):
-            v.visit(c)
-        else:
+        if not v.try_visit(c):
             return False, v
     return True, v
 

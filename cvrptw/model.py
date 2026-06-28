@@ -84,10 +84,10 @@ class Vehicle:
         if self.left_capacity < c.demand:
             return False
         travel_time = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
-        if self._departure_time + travel_time >= c.due_date:
+        if self._departure_time + travel_time > c.due_date:
             return False
         time_to_depot = self.dist_matrix[c.cust_id][self.depot.cust_id]
-        return self._departure_time + travel_time + c.service_time + time_to_depot < self.depot.due_date
+        return self._departure_time + travel_time + c.service_time + time_to_depot <= self.depot.due_date
 
     def visit(self, c: Customer) -> None:
         self.left_capacity -= c.demand

@@ -31,20 +31,37 @@ def test_cannot_visit_over_capacity(tiny):
     assert not v.can_visit(c2)
 
 
-def test_cannot_visit_past_due_date():
+
+def test_can_visit_exactly_at_customer_due_date():
     depot = Customer(0, 0, 0, 0, 0, 1000, 0)
-    c = Customer(1, 10, 0, 5, 0, 5, 0)                 # due_date=5, travel time=10
+    c = Customer(1, 10, 0, 5, 0, 10, 0)                # due_date=10, travel=10 → arrive exactly at 10
+    distances = np.array([[0., 10.], [10., 0.]])
+    v = Vehicle(100, depot, distances)
+    assert v.can_visit(c)                               # arrival == due_date is valid
+
+
+def test_cannot_visit_past_customer_due_date():
+    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
+    c = Customer(1, 10, 0, 5, 0, 9, 0)                 # due_date=9, travel=10 → arrive at 10 > 9
     distances = np.array([[0., 10.], [10., 0.]])
     v = Vehicle(100, depot, distances)
     assert not v.can_visit(c)
 
 
-def test_cannot_visit_when_no_time_to_return():
+def test_can_visit_returns_exactly_at_depot_closing():
     depot = Customer(0, 0, 0, 0, 0, 25, 0)             # depot closes at t=25
     c = Customer(1, 10, 0, 5, 0, 15, 5)                # travel=10, service=5, return=10 → 25 total
     distances = np.array([[0., 10.], [10., 0.]])
     v = Vehicle(100, depot, distances)
-    assert not v.can_visit(c)                           # 10+5+10=25, not < 25
+    assert v.can_visit(c)                               # 10+5+10=25 == depot.due_date is valid
+
+
+def test_cannot_visit_when_return_arrives_late():
+    depot = Customer(0, 0, 0, 0, 0, 24, 0)             # depot closes at t=24
+    c = Customer(1, 10, 0, 5, 0, 15, 5)                # return at t=25 > 24
+    distances = np.array([[0., 10.], [10., 0.]])
+    v = Vehicle(100, depot, distances)
+    assert not v.can_visit(c)
 
 
 def test_route_depot_and_length(tiny):

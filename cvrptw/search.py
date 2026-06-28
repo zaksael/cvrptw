@@ -91,14 +91,14 @@ def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
                 if v1_idx == v2_idx:
                     continue
                 for i in range(1, v1.length() - 1):
-                    for j in range(1, v2.length() - 1):
+                    c_id = v1.route.customers[i].cust_id
+                    if c_id in moved_ids:
+                        continue
+                    for j in range(1, v2.length()):
                         r1, r2 = relocate(v1, i, v2, j)
                         ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
                         ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
                         if ok1 and ok2:
-                            c_id = v1.route.customers[i].cust_id
-                            if c_id in moved_ids:
-                                continue
                             result.vehicles[v1_idx] = nv1
                             result.vehicles[v2_idx] = nv2
                             moved_ids.add(c_id)

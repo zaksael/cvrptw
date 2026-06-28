@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from cvrptw.io import load_instance
+from cvrptw.model import Customer, Instance
 from cvrptw.operators import check_route
 from cvrptw.solver import get_greedy_solution
 
@@ -31,3 +33,29 @@ def test_greedy_routes_are_feasible(c108):
 def test_greedy_respects_vehicle_limit(c108):
     sol = get_greedy_solution(c108)
     assert len(sol) <= c108.n_vehicles
+
+
+def test_greedy_picks_nearest_when_ready_time_zero():
+    """Greedy score was distance * ready_time * due_date.
+
+    When ready_time==0 all scores collapse to 0 and argmin picks the first
+    candidate regardless of distance. The fix uses (ready_time+1) so distance
+    still drives selection. c_far is listed first so the old bug picks it;
+    the fix picks c_near.
+    """
+    from cvrptw.io import calculate_distances
+
+    depot  = Customer(0,  0, 0, 0, 0, 1000, 0)
+    c_far  = Customer(1, 20, 0, 1, 0, 1000, 0)   # ready_time=0, distance 20 from depot
+    c_near = Customer(2,  5, 0, 1, 0, 1000, 0)   # ready_time=0, distance  5 from depot
+    customers = [depot, c_far, c_near]
+    inst = Instance(
+        n_vehicles=2,
+        capacity=10,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    sol = get_greedy_solution(inst)
+    first_stop = sol.vehicles[0].route.customers[1]
+    assert first_stop is c_near

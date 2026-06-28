@@ -8,7 +8,7 @@ from .search import local_search, perturbation
 
 def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     def most_suitable(current, candidates):
-        values = [instance.distances[current.cust_id][c.cust_id] * c.ready_time * c.due_date
+        values = [instance.distances[current.cust_id][c.cust_id] * (c.ready_time + 1) * c.due_date
                   for c in candidates]
         return candidates[np.argmin(values)]
 

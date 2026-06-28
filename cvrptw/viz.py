@@ -18,7 +18,8 @@ def draw_solution(sol: Solution, title: str = '') -> None:
         norm=colors.Normalize(vmin=0, vmax=len(sol)),
         cmap=plt.get_cmap('gist_rainbow'),
     )
-    for v_i, v in enumerate(sorted(sol, key=lambda v: v.length())):
+    vehicles = sorted(sol, key=lambda v: v.length())
+    for v_i, v in enumerate(vehicles):
         c_x = np.array([c.x for c in v.route.customers])
         c_y = np.array([c.y for c in v.route.customers])
         edges = np.array([[i, i + 1] for i in range(v.route.length() - 1)])
@@ -26,7 +27,8 @@ def draw_solution(sol: Solution, title: str = '') -> None:
         ax.plot(c_x[edges.T], c_y[edges.T],
                 linestyle='-', color=color, linewidth=1.5,
                 markerfacecolor=color, marker='o', markersize=4)
-    ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=20)
+    if vehicles:
+        ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=20)
     plt.title(title)
     plt.show()
 
@@ -42,12 +44,14 @@ def draw_best_solutions(values: np.ndarray) -> None:
             norm=colors.Normalize(vmin=0, vmax=len(sol)),
             cmap=plt.get_cmap('gist_rainbow'),
         )
-        for v_i, v in enumerate(sorted(sol, key=lambda v: v.length())):
-            c_x = np.array([c.x for c in v.route])
-            c_y = np.array([c.y for c in v.route])
-            edges = np.array([[i, i + 1] for i in range(len(v.route) - 1)])
+        vehicles = sorted(sol, key=lambda v: v.length())
+        for v_i, v in enumerate(vehicles):
+            c_x = np.array([c.x for c in v.route.customers])
+            c_y = np.array([c.y for c in v.route.customers])
+            edges = np.array([[i, i + 1] for i in range(v.route.length() - 1)])
             color = scalar_map.to_rgba(v_i)
             ax.plot(c_x[edges.T], c_y[edges.T],
                     linestyle='-', color=color, linewidth=1.5,
                     markerfacecolor=color, marker='o', markersize=4)
-        ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=10)
+        if vehicles:
+            ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=10)

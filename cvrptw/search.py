@@ -2,7 +2,7 @@ import copy
 import random
 
 from .model import Solution
-from .operators import check_route, cross, customer_indices, exchange, relocate
+from .operators import check_route_from, cross, customer_indices, exchange
 
 
 def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution]:
@@ -30,7 +30,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
                     c = new_route[i]
                     del new_route[i]
                     new_route.insert(j, c)
-                    valid, new_v = check_route(new_route, v.initial_capacity, v.dist_matrix)
+                    valid, new_v = check_route_from(new_route, v, min(i, j) - 1)
                     if valid and v.distance() - new_v.distance() > 1e-3:
                         result.vehicles[v_i] = new_v
                         return True, result
@@ -47,9 +47,11 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
                     for j in customer_indices(v2, with_last):
                         _count()
                         r1, r2 = operator(v1, i, v2, j)
-                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
-                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
-                        if ok1 and ok2:
+                        ok1, nv1 = check_route_from(r1, v1, i - 1)
+                        if not ok1:
+                            continue
+                        ok2, nv2 = check_route_from(r2, v2, j - 1)
+                        if ok2:
                             gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
                             if gain > 1e-3:
                                 result.vehicles[idx1] = nv1
@@ -94,11 +96,15 @@ def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
                     c_id = v1.route.customers[i].cust_id
                     if c_id in moved_ids:
                         continue
+                    r1 = v1.route.customers[:i] + v1.route.customers[i + 1:]
+                    ok1, nv1 = check_route_from(r1, v1, i - 1)
+                    if not ok1:
+                        continue
+                    c = v1.route.customers[i]
                     for j in range(1, v2.length()):
-                        r1, r2 = relocate(v1, i, v2, j)
-                        ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
-                        ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
-                        if ok1 and ok2:
+                        r2 = v2.route.customers[:j] + [c] + v2.route.customers[j:]
+                        ok2, nv2 = check_route_from(r2, v2, j - 1)
+                        if ok2:
                             result.vehicles[v1_idx] = nv1
                             result.vehicles[v2_idx] = nv2
                             moved_ids.add(c_id)

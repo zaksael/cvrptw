@@ -17,7 +17,7 @@ def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     while remaining:
         if v.left_capacity < min(c.demand for c in remaining):
             break
-        candidate = most_suitable(v.route[-1], remaining)
+        candidate = most_suitable(v.route.customers[-1], remaining)
         if v.can_visit(candidate):
             v.visit(candidate)
         remaining.remove(candidate)
@@ -33,7 +33,7 @@ def get_greedy_solution(instance: Instance) -> Solution:
             break
         v = run_vehicle(candidates, instance)
         vehicles.append(v)
-        candidates = [c for c in candidates if c not in v.route]
+        candidates = [c for c in candidates if c not in v.route.customers]
     return Solution(vehicles)
 
 

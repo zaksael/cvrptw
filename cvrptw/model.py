@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -34,47 +34,79 @@ class Instance:
                 f"customers={len(self.customers)}, distances={self.distances.shape})")
 
 
+@dataclass(eq=False)
+class Route:
+    customers: list[Customer]
+    time_points: list[float]
+    leg_distances: list[float]
+    _distance: float = field(default=0.0, init=False, repr=False)
+
+    @property
+    def distance(self) -> float:
+        return self._distance
+
+    @property
+    def total_time(self) -> float:
+        return self.time_points[-1]
+
+    def length(self) -> int:
+        return len(self.customers)
+
+    @property
+    def depot(self) -> Customer:
+        return self.customers[0]
+
+    def __repr__(self) -> str:
+        return str([c.cust_id for c in self.customers])
+
+
 class Vehicle:
     def __init__(self, capacity: int, depot: Customer, distances: np.ndarray) -> None:
-        self.depot = depot
-        self.route = [depot]
-        self.time_points = [depot.ready_time]
         self.initial_capacity = capacity
         self.left_capacity = capacity
         self.dist_matrix = distances
-        self.total_time = 0
-        self.distances = [0]
-        self._distance = 0.0
+        self.route = Route(
+            customers=[depot],
+            time_points=[float(depot.ready_time)],
+            leg_distances=[0.0],
+        )
+        self._departure_time: float = 0.0
+
+    @property
+    def depot(self) -> Customer:
+        return self.route.depot
+
+    @property
+    def total_time(self) -> float:
+        return self._departure_time
 
     def can_visit(self, c: Customer) -> bool:
         if self.left_capacity < c.demand:
             return False
-        travel_time = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
-        if self.total_time + travel_time >= c.due_date:
+        travel_time = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
+        if self._departure_time + travel_time >= c.due_date:
             return False
         time_to_depot = self.dist_matrix[c.cust_id][self.depot.cust_id]
-        return self.total_time + travel_time + c.service_time + time_to_depot < self.depot.due_date
+        return self._departure_time + travel_time + c.service_time + time_to_depot < self.depot.due_date
 
     def visit(self, c: Customer) -> None:
         self.left_capacity -= c.demand
-        distance_to_customer = self.dist_matrix[self.route[-1].cust_id][c.cust_id]
-        self.distances.append(distance_to_customer)
-        self._distance += distance_to_customer
-        self.total_time += distance_to_customer
-        if self.total_time < c.ready_time:
-            self.total_time = c.ready_time
-        self.time_points.append(self.total_time)
-        self.total_time += c.service_time
-        self.route.append(c)
+        d = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
+        arrival = max(self._departure_time + d, float(c.ready_time))
+        self.route.leg_distances.append(d)
+        self.route.time_points.append(arrival)
+        self.route.customers.append(c)
+        self.route._distance += d
+        self._departure_time = arrival + c.service_time
 
     def length(self) -> int:
-        return len(self.route)
+        return self.route.length()
 
     def distance(self) -> float:
-        return self._distance
+        return self.route.distance
 
     def print_info(self) -> None:
-        for c, time, dist in zip(self.route, self.time_points, self.distances):
+        for c, time, dist in zip(self.route.customers, self.route.time_points, self.route.leg_distances):
             print(f"{c.cust_id:3} demand={c.demand:2} dist={dist:6.3f} "
                   f"time={time:7.2f} tw=({c.ready_time:3},{c.due_date:4}) "
                   f"service_time={c.service_time:2} ->")
@@ -82,7 +114,7 @@ class Vehicle:
               f"length={self.length():2}, left_capacity = {self.left_capacity}")
 
     def __repr__(self) -> str:
-        return str([c.cust_id for c in self.route])
+        return str([c.cust_id for c in self.route.customers])
 
 
 @dataclass(eq=False)

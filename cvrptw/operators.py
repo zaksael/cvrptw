@@ -18,17 +18,18 @@ def check_route(route: list[Customer], capacity: int, distances: np.ndarray) -> 
 
 
 def cross(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
-    return v1.route[:i] + v2.route[j:], v2.route[:j] + v1.route[i:]
+    r1, r2 = v1.route.customers, v2.route.customers
+    return r1[:i] + r2[j:], r2[:j] + r1[i:]
 
 
 def exchange(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
-    r1, r2 = v1.route[:], v2.route[:]
+    r1, r2 = v1.route.customers[:], v2.route.customers[:]
     r1[i], r2[j] = r2[j], r1[i]
     return r1, r2
 
 
 def relocate(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
-    r1, r2 = v1.route[:], v2.route[:]
+    r1, r2 = v1.route.customers[:], v2.route.customers[:]
     c = r1[i]
     del r1[i]
     r2.insert(j, c)

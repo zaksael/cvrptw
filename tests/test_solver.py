@@ -16,7 +16,7 @@ def c108():
 
 def test_greedy_covers_all_customers(c108):
     sol = get_greedy_solution(c108)
-    visited = {c.cust_id for v in sol for c in v.route if c is not c108.depot}
+    visited = {c.cust_id for v in sol for c in v.route.customers if c is not c108.depot}
     expected = {c.cust_id for c in c108.customers[1:]}
     assert visited == expected
 
@@ -24,7 +24,7 @@ def test_greedy_covers_all_customers(c108):
 def test_greedy_routes_are_feasible(c108):
     sol = get_greedy_solution(c108)
     for v in sol:
-        valid, _ = check_route(v.route, c108.capacity, c108.distances)
+        valid, _ = check_route(v.route.customers, c108.capacity, c108.distances)
         assert valid, f"Infeasible route: {v}"
 
 

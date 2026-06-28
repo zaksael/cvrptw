@@ -7,9 +7,9 @@ def ids(route):
     return [c.cust_id for c in route]
 
 
-def make_v(route):
-    """Minimal stand-in for Vehicle: operators only access .route."""
-    return SimpleNamespace(route=route)
+def make_v(customers):
+    """Minimal stand-in for Vehicle: operators only access .route.customers."""
+    return SimpleNamespace(route=SimpleNamespace(customers=customers))
 
 
 def test_cross_swaps_suffixes(tiny):
@@ -41,7 +41,7 @@ def test_exchange_does_not_mutate_original(tiny):
     v1 = make_v([depot, c1, depot])
     v2 = make_v([depot, c2, depot])
     exchange(v1, 1, v2, 1)
-    assert ids(v1.route) == [0, 1, 0]                  # original unchanged
+    assert ids(v1.route.customers) == [0, 1, 0]         # original unchanged
 
 
 def test_relocate_moves_customer_between_routes(tiny):

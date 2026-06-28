@@ -19,9 +19,9 @@ def draw_solution(sol: Solution, title: str = '') -> None:
         cmap=plt.get_cmap('gist_rainbow'),
     )
     for v_i, v in enumerate(sorted(sol, key=lambda v: v.length())):
-        c_x = np.array([c.x for c in v.route])
-        c_y = np.array([c.y for c in v.route])
-        edges = np.array([[i, i + 1] for i in range(len(v.route) - 1)])
+        c_x = np.array([c.x for c in v.route.customers])
+        c_y = np.array([c.y for c in v.route.customers])
+        edges = np.array([[i, i + 1] for i in range(v.route.length() - 1)])
         color = scalar_map.to_rgba(v_i)
         ax.plot(c_x[edges.T], c_y[edges.T],
                 linestyle='-', color=color, linewidth=1.5,

@@ -26,7 +26,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
                     if i == j:
                         continue
                     _count()
-                    new_route = copy.deepcopy(v.route)
+                    new_route = v.route.customers[:]
                     c = new_route[i]
                     del new_route[i]
                     new_route.insert(j, c)
@@ -96,7 +96,7 @@ def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
                         ok1, nv1 = check_route(r1, v1.initial_capacity, v1.dist_matrix)
                         ok2, nv2 = check_route(r2, v2.initial_capacity, v2.dist_matrix)
                         if ok1 and ok2:
-                            c_id = v1.route[i].cust_id
+                            c_id = v1.route.customers[i].cust_id
                             if c_id in moved_ids:
                                 continue
                             result.vehicles[v1_idx] = nv1

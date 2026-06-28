@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 
-from .model import Customer, Instance, Vehicle
+from .model import Customer, Instance, Solution, Vehicle
 
 
 def load_instance(file_path: str | Path) -> Instance:
@@ -26,7 +26,7 @@ def calculate_distances(customers: list[Customer]) -> np.ndarray:
     return euclidean_distances(coords, coords)
 
 
-def save_solution(file_path: str | Path, sol: list[Vehicle]) -> None:
+def save_solution(file_path: str | Path, sol: Solution) -> None:
     lines = []
     for v in sol:
         parts = [f"{c.cust_id} {t:.4f}" for c, t in zip(v.route, v.time_points)]

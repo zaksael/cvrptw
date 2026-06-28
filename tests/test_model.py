@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from cvrptw.model import Customer, Vehicle, get_distance, remove_empty_routes
+from cvrptw.model import Customer, Solution, Vehicle
 
 
 def test_visit_updates_capacity_and_time(tiny):
@@ -47,7 +47,7 @@ def test_cannot_visit_when_no_time_to_return():
     assert not v.can_visit(c)                           # 10+5+10=25, not < 25
 
 
-def test_remove_empty_routes(tiny):
+def test_without_empty_routes(tiny):
     customers, distances, capacity = tiny
     depot, c1 = customers[0], customers[1]
 
@@ -58,14 +58,14 @@ def test_remove_empty_routes(tiny):
     empty = Vehicle(capacity, depot, distances)
     empty.visit(depot)                                  # length = 2 → removed
 
-    result = remove_empty_routes([non_empty, empty])
-    assert result == [non_empty]
+    result = Solution([non_empty, empty]).without_empty_routes()
+    assert result.vehicles == [non_empty]
 
 
-def test_get_distance(tiny):
+def test_solution_distance(tiny):
     customers, distances, capacity = tiny
     depot, c1 = customers[0], customers[1]
     v = Vehicle(capacity, depot, distances)
     v.visit(c1)
     v.visit(depot)                                      # depot → c1 (+10), c1 → depot (+10)
-    assert get_distance([v]) == pytest.approx(20.0)
+    assert Solution([v]).distance == pytest.approx(20.0)

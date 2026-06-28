@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from .model import Customer, Instance, Vehicle, get_distance
+from .model import Customer, Instance, Solution, Vehicle
 from .search import local_search, perturbation
 
 
@@ -25,16 +25,16 @@ def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     return v
 
 
-def get_greedy_solution(instance: Instance) -> list[Vehicle]:
-    solution = []
+def get_greedy_solution(instance: Instance) -> Solution:
+    vehicles = []
     candidates = instance.customers[1:]
     for _ in range(instance.n_vehicles):
         if not candidates:
             break
         v = run_vehicle(candidates, instance)
-        solution.append(v)
+        vehicles.append(v)
         candidates = [c for c in candidates if c not in v.route]
-    return solution
+    return Solution(vehicles)
 
 
 def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, int]:
@@ -43,9 +43,9 @@ def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, 
     return 250_000, 600
 
 
-def ils(sol: list[Vehicle], max_ls_attempts: int, n_perturbation_moves: int, time_limit: int) -> tuple[int, list[Vehicle]]:
+def ils(sol: Solution, max_ls_attempts: int, n_perturbation_moves: int, time_limit: int) -> tuple[int, Solution]:
     best_sol = current_sol = sol
-    best_dist = get_distance(best_sol)
+    best_dist = sol.distance
     made_iters = 0
     n_failed_iters = 0
 
@@ -58,7 +58,7 @@ def ils(sol: list[Vehicle], max_ls_attempts: int, n_perturbation_moves: int, tim
         if not (p_changed or ls_changed):
             break
 
-        current_dist = get_distance(current_sol)
+        current_dist = current_sol.distance
         delta = best_dist - current_dist
         if delta > 1e-3:
             best_sol = current_sol

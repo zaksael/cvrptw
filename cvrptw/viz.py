@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
-    from .model import Vehicle
+    from .model import Solution
 
 
-def draw_solution(sol: list[Vehicle], title: str = '') -> None:
+def draw_solution(sol: Solution, title: str = '') -> None:
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     scalar_map = cmx.ScalarMappable(

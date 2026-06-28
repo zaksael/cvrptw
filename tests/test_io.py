@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from cvrptw.io import load_instance, save_solution
-from cvrptw.model import Vehicle
+from cvrptw.model import Solution, Vehicle
 
 C108 = Path(__file__).parent.parent / 'ils' / 'resources' / 'instances' / 'C108.txt'
 
@@ -34,7 +34,7 @@ def test_save_solution_format(tiny):
     with tempfile.NamedTemporaryFile(suffix='.sol', delete=False) as f:
         path = f.name
     try:
-        save_solution(path, [v])
+        save_solution(path, sol=Solution(vehicles=[v]))
         tokens = Path(path).read_text().split()
         # Each stop is a (cust_id, time) pair: "0 0.0000 1 10.0000 2 25.0000 0 50.0000"
         cust_ids = [int(tokens[i]) for i in range(0, len(tokens), 2)]

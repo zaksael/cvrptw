@@ -1,11 +1,11 @@
 import copy
 import random
 
-from .model import remove_empty_routes, Vehicle
+from .model import Solution
 from .operators import check_route, cross, customer_indices, exchange, relocate
 
 
-def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool, list[Vehicle]]:
+def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution]:
     class _LimitReached(Exception):
         pass
 
@@ -17,10 +17,10 @@ def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool,
         if n_attempts == max_attempts:
             raise _LimitReached
 
-    def intra_relocate(sol):
+    def intra_relocate(sol: Solution) -> tuple[bool, Solution]:
         result = copy.deepcopy(sol)
-        random.shuffle(result)
-        for v_i, v in enumerate(result):
+        random.shuffle(result.vehicles)
+        for v_i, v in enumerate(result.vehicles):
             for i in range(1, v.length() - 1):
                 for j in range(1, v.length() - 1):
                     if i == j:
@@ -32,15 +32,15 @@ def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool,
                     new_route.insert(j, c)
                     valid, new_v = check_route(new_route, v.initial_capacity, v.dist_matrix)
                     if valid and v.distance() - new_v.distance() > 1e-3:
-                        result[v_i] = new_v
+                        result.vehicles[v_i] = new_v
                         return True, result
         return False, result
 
-    def apply_operator(sol, operator, with_last):
+    def apply_operator(sol: Solution, operator, with_last: bool) -> tuple[bool, Solution]:
         result = copy.deepcopy(sol)
-        random.shuffle(result)
-        for idx1, v1 in enumerate(result):
-            for idx2, v2 in enumerate(result):
+        random.shuffle(result.vehicles)
+        for idx1, v1 in enumerate(result.vehicles):
+            for idx2, v2 in enumerate(result.vehicles):
                 if idx1 == idx2:
                     continue
                 for i in customer_indices(v1, with_last):
@@ -52,9 +52,9 @@ def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool,
                         if ok1 and ok2:
                             gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
                             if gain > 1e-3:
-                                result[idx1] = nv1
-                                result[idx2] = nv2
-                                return True, remove_empty_routes(result)
+                                result.vehicles[idx1] = nv1
+                                result.vehicles[idx2] = nv2
+                                return True, result.without_empty_routes()
         return False, result
 
     result = sol
@@ -80,14 +80,14 @@ def local_search(sol: list[Vehicle], max_attempts: int = 200_000) -> tuple[bool,
     return changes_made, result
 
 
-def perturbation(solution: list[Vehicle], n_moves: int = 5) -> tuple[bool, list[Vehicle]]:
+def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
     moved_ids: set[int] = set()
 
-    def inter_relocate(sol):
+    def inter_relocate(sol: Solution) -> tuple[bool, Solution]:
         result = copy.deepcopy(sol)
-        random.shuffle(result)
-        for v1_idx, v1 in enumerate(result):
-            for v2_idx, v2 in enumerate(result):
+        random.shuffle(result.vehicles)
+        for v1_idx, v1 in enumerate(result.vehicles):
+            for v2_idx, v2 in enumerate(result.vehicles):
                 if v1_idx == v2_idx:
                     continue
                 for i in range(1, v1.length() - 1):
@@ -99,10 +99,10 @@ def perturbation(solution: list[Vehicle], n_moves: int = 5) -> tuple[bool, list[
                             c_id = v1.route[i].cust_id
                             if c_id in moved_ids:
                                 continue
-                            result[v1_idx] = nv1
-                            result[v2_idx] = nv2
+                            result.vehicles[v1_idx] = nv1
+                            result.vehicles[v2_idx] = nv2
                             moved_ids.add(c_id)
-                            return True, remove_empty_routes(result)
+                            return True, result.without_empty_routes()
         return False, result
 
     result = solution

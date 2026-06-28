@@ -85,25 +85,36 @@ class Vehicle:
         return str([c.cust_id for c in self.route])
 
 
-def get_time(solution: list[Vehicle]) -> float:
-    return sum(v.total_time for v in solution)
+@dataclass(eq=False)
+class Solution:
+    vehicles: list[Vehicle]
 
+    @property
+    def distance(self) -> float:
+        return sum(v.distance() for v in self.vehicles)
 
-def get_distance(solution: list[Vehicle]) -> float:
-    return sum(v.distance() for v in solution)
+    @property
+    def time(self) -> float:
+        return sum(v.total_time for v in self.vehicles)
 
+    def without_empty_routes(self) -> Solution:
+        return Solution([v for v in self.vehicles if v.length() > 2])
 
-def remove_empty_routes(sol: list[Vehicle]) -> list[Vehicle]:
-    return [v for v in sol if v.length() > 2]
+    def __len__(self) -> int:
+        return len(self.vehicles)
 
+    def __iter__(self):
+        return iter(self.vehicles)
 
-def print_solution_info(solution: list[Vehicle], verbose: bool = False) -> None:
-    print(f"Total solution time = {get_time(solution):.2f}, "
-          f"distance = {get_distance(solution):.2f}, vehicles = {len(solution)}:")
-    for i, v in enumerate(sorted(solution, key=lambda v: v.distance())):
-        if verbose:
-            print('-' * 75)
-            v.print_info()
-        else:
-            print(f"{i+1:2}) Time={v.total_time:7.2f}, distance={v.distance():6.2f}, "
-                  f"length={v.length():2}, left capacity={v.left_capacity:3}: {v}")
+    def __repr__(self) -> str:
+        return f"Solution(vehicles={len(self)}, distance={self.distance:.2f})"
+
+    def print_info(self, verbose: bool = False) -> None:
+        print(f"Total time = {self.time:.2f}, distance = {self.distance:.2f}, vehicles = {len(self)}:")
+        for i, v in enumerate(sorted(self.vehicles, key=lambda v: v.distance())):
+            if verbose:
+                print('-' * 75)
+                v.print_info()
+            else:
+                print(f"{i+1:2}) Time={v.total_time:7.2f}, distance={v.distance():6.2f}, "
+                      f"length={v.length():2}, left capacity={v.left_capacity:3}: {v}")

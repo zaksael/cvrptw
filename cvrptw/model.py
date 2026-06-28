@@ -94,18 +94,21 @@ class Vehicle:
     def try_visit(self, c: Customer) -> bool:
         if self.left_capacity < c.demand:
             return False
-        d = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
-        if self._departure_time + d > c.due_date:
+        route = self.route
+        dm = self.dist_matrix
+        d = dm[route.customers[-1].cust_id][c.cust_id]
+        t = self._departure_time + d
+        if t > c.due_date:
             return False
         depot = self._depot
-        if self._departure_time + d + c.service_time + self.dist_matrix[c.cust_id][depot.cust_id] > depot.due_date:
+        if t + c.service_time + dm[c.cust_id][depot.cust_id] > depot.due_date:
             return False
-        arrival = max(self._departure_time + d, float(c.ready_time))
+        arrival = t if t >= c.ready_time else float(c.ready_time)
         self.left_capacity -= c.demand
-        self.route.leg_distances.append(d)
-        self.route.time_points.append(arrival)
-        self.route.customers.append(c)
-        self.route._distance += d
+        route.leg_distances.append(d)
+        route.time_points.append(arrival)
+        route.customers.append(c)
+        route._distance += d
         self._departure_time = arrival + c.service_time
         return True
 

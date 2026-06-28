@@ -54,10 +54,6 @@ class Route:
     def length(self) -> int:
         return len(self.customers)
 
-    @property
-    def depot(self) -> Customer:
-        return self.customers[0]
-
     def __repr__(self) -> str:
         return str([c.cust_id for c in self.customers])
 

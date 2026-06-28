@@ -15,11 +15,12 @@ def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     v = Vehicle(instance.capacity, instance.depot, instance.distances)
     remaining = candidates[:]
     while remaining:
-        if v.left_capacity < min(c.demand for c in remaining):
+        feasible = [c for c in remaining if v.can_visit(c)]
+        if not feasible:
             break
-        candidate = most_suitable(v.route.customers[-1], remaining)
-        v.try_visit(candidate)
+        candidate = most_suitable(v.route.customers[-1], feasible)
         remaining.remove(candidate)
+        v.visit(candidate)
     v.visit(v.depot)
     return v
 

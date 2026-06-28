@@ -68,7 +68,7 @@ def test_route_depot_and_length(tiny):
     customers, distances, capacity = tiny
     depot, c1, c2 = customers[0], customers[1], customers[2]
     v = Vehicle(capacity, depot, distances)
-    assert v.route.depot is depot
+    assert v.route.customers[0] is depot
     assert v.route.length() == 1
     v.visit(c1)
     v.visit(c2)

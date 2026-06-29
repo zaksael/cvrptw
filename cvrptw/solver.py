@@ -1,9 +1,24 @@
 import time
+from dataclasses import dataclass, field
 
 import numpy as np
 
 from .model import Customer, Instance, Solution, Vehicle
 from .search import local_search, perturbation
+
+
+@dataclass
+class IterationStats:
+    distance: float
+    improved: bool
+    ls_attempts: int
+    cross_improvements: int
+    intra_relocate_improvements: int
+    exchange_improvements: int
+    perturb_moves: int
+
+
+ILSStats = list[IterationStats]
 
 
 def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
@@ -43,29 +58,48 @@ def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, 
     return 250_000, 600
 
 
-def ils(sol: Solution, max_ls_attempts: int, n_perturbation_moves: int, time_limit: int) -> tuple[int, Solution]:
+def ils(
+    sol: Solution,
+    max_ls_attempts: int,
+    n_perturbation_moves: int,
+    time_limit: int,
+    verbose: bool = False,
+) -> tuple[int, Solution, ILSStats]:
     best_sol = current_sol = sol
     best_dist = sol.distance
     made_iters = 0
     n_failed_iters = 0
+    stats: ILSStats = []
 
     start = time.time()
     while time.time() - start < time_limit and n_failed_iters < 20:
         made_iters += 1
-        p_changed, current_sol = perturbation(current_sol, n_moves=n_perturbation_moves)
-        ls_changed, current_sol = local_search(current_sol, max_attempts=max_ls_attempts)
+        p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
+        ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts)
 
         if not (p_changed or ls_changed):
             break
 
         current_dist = current_sol.distance
         delta = best_dist - current_dist
-        if delta > 1e-3:
+        improved = delta > 1e-3
+        if improved:
             best_sol = current_sol
             best_dist = current_dist
             n_failed_iters = 0
-            print(f"New best: {best_dist:.2f} ({delta:+.3f}), vehicles = {len(best_sol)}")
+            if verbose:
+                print(f"New best: {best_dist:.2f} ({delta:+.3f}), vehicles = {len(best_sol)}")
         else:
             n_failed_iters += 1
 
-    return made_iters, best_sol
+        stats.append(IterationStats(
+            distance=round(best_dist, 2),
+            improved=improved,
+            ls_attempts=ls_stats.n_attempts,
+            cross_improvements=ls_stats.cross_improvements,
+            intra_relocate_improvements=ls_stats.intra_relocate_improvements,
+            exchange_improvements=ls_stats.exchange_improvements,
+            perturb_moves=actual_p_moves,
+        ))
+
+    return made_iters, best_sol, stats

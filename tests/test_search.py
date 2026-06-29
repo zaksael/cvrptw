@@ -23,5 +23,5 @@ def test_perturbation_relocates_into_two_stop_route():
     v_target.visit(depot)                      # route=[depot, depot], length=2
 
     sol = Solution([v_source, v_target])
-    changed, _ = perturbation(sol, n_moves=1)
+    changed, _, _ = perturbation(sol, n_moves=1)
     assert changed

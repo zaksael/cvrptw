@@ -50,7 +50,7 @@ def test_ils_preserves_all_customers():
         distances=calculate_distances(customers),
     )
     greedy = get_greedy_solution(inst)
-    _, final = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2)
+    _, final, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2)
     assert not final.missing_customers(inst)
 
 

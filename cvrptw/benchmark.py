@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .io import load_instance, save_solution
 from .model import Solution
-from .solver import get_greedy_solution, ils, ls_attempts_and_time_limit
+from .solver import ILSStats, get_greedy_solution, ils, ls_attempts_and_time_limit
 
 
 @dataclass
@@ -15,12 +15,14 @@ class BenchmarkResult:
     n_iters: int
     elapsed: float
     solution: Solution
+    stats: ILSStats
 
 
 def run_instance(
     path: Path | str,
     results_dir: Path | str | None = None,
     perturbation_moves: int = 5,
+    verbose: bool = True,
 ) -> BenchmarkResult:
     path = Path(path)
     print()
@@ -32,7 +34,7 @@ def run_instance(
 
     start = time.time()
     init_sol = get_greedy_solution(inst)
-    n_iters, sol = ils(init_sol, ls_max_moves, perturbation_moves, time_limit)
+    n_iters, sol, stats = ils(init_sol, ls_max_moves, perturbation_moves, time_limit, verbose=verbose)
     elapsed = time.time() - start
 
     print(f'Best distance = {sol.distance:.2f}')
@@ -48,6 +50,7 @@ def run_instance(
         n_iters=n_iters,
         elapsed=round(elapsed, 2),
         solution=sol,
+        stats=stats,
     )
 
 

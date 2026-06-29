@@ -1,10 +1,19 @@
 import random
+from dataclasses import dataclass
 
 from .model import Solution
 from .operators import check_route_from, cross, customer_indices, exchange
 
 
-def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution]:
+@dataclass
+class LSStats:
+    n_attempts: int
+    cross_improvements: int
+    intra_relocate_improvements: int
+    exchange_improvements: int
+
+
+def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution, LSStats]:
     class _LimitReached(Exception):
         pass
 
@@ -66,27 +75,31 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
     result = sol
     changes_made = False
     can_move = True
+    cross_impr = intra_impr = exch_impr = 0
     while can_move:
         try:
             done, result = apply_operator(result, cross, with_last=True)
             if done:
                 changes_made = True
+                cross_impr += 1
             else:
                 done, result = intra_relocate(result)
                 if done:
                     changes_made = True
+                    intra_impr += 1
                 else:
                     done, result = apply_operator(result, exchange, with_last=False)
                     if done:
                         changes_made = True
+                        exch_impr += 1
                     else:
                         can_move = False
         except _LimitReached:
             break
-    return changes_made, result
+    return changes_made, result, LSStats(n_attempts, cross_impr, intra_impr, exch_impr)
 
 
-def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
+def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution, int]:
     moved_ids: set[int] = set()
 
     def inter_relocate(sol: Solution) -> tuple[bool, Solution]:
@@ -120,9 +133,11 @@ def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution]:
 
     result = solution
     changes_made = False
+    actual_moves = 0
     for _ in range(n_moves):
         done, result = inter_relocate(result)
         if not done:
             break
         changes_made = True
-    return changes_made, result
+        actual_moves += 1
+    return changes_made, result, actual_moves

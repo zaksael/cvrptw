@@ -8,7 +8,7 @@ from cvrptw.model import Customer, Instance
 from cvrptw.operators import check_route
 from cvrptw.solver import get_greedy_solution, ils
 
-C108 = Path(__file__).parent.parent / 'ils' / 'resources' / 'instances' / 'C108.txt'
+C108 = Path(__file__).parent.parent / 'data' / 'instances' / 'C108.txt'
 
 
 @pytest.fixture

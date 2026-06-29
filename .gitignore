@@ -8,7 +8,7 @@ __pycache__/
 .venv/
 .uv/
 
-ils/.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
 
 CLAUDE.md
 .claude/

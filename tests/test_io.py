@@ -5,7 +5,7 @@ from pathlib import Path
 from cvrptw.io import load_instance, save_solution
 from cvrptw.model import Solution, Vehicle
 
-C108 = Path(__file__).parent.parent / 'ils' / 'resources' / 'instances' / 'C108.txt'
+C108 = Path(__file__).parent.parent / 'data' / 'instances' / 'C108.txt'
 
 
 def test_read_vehicle_and_capacity():

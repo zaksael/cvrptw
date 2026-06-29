@@ -2,6 +2,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+_REPO_ROOT = Path(__file__).parent.parent
+
 from .io import load_instance, save_solution
 from .model import Solution
 from .solver import ILSStats, get_greedy_solution, ils, ls_attempts_and_time_limit
@@ -55,8 +57,8 @@ def run_instance(
 
 
 def run_benchmark(
-    instances_dir: Path | str,
-    results_dir: Path | str | None = None,
+    instances_dir: Path | str = _REPO_ROOT / 'data' / 'instances',
+    results_dir: Path | str | None = _REPO_ROOT / 'results',
     perturbation_moves: int = 5,
 ) -> list[BenchmarkResult]:
     paths = sorted(

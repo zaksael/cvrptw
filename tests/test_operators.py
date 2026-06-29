@@ -111,3 +111,37 @@ def test_check_route_from_detects_capacity_infeasibility(tiny):
     _, src = check_route([depot, c1], capacity, distances)
     ok, _ = check_route_from([depot, c1, c2, c3, depot], src, prefix_end=1)
     assert not ok
+
+
+def test_check_route_from_empty_suffix(tiny):
+    """Prefix_end at last real stop: suffix is just the closing depot, always valid."""
+    customers, distances, capacity = tiny
+    depot, c1, c2, c3 = customers
+    route = [depot, c1, c2, c3, depot]
+    _, src = check_route(route, capacity, distances)
+
+    # resume from just before the closing depot
+    ok, v = check_route_from(route, src, prefix_end=4)
+
+    assert ok
+    assert ids(v.route.customers) == ids(route)
+    assert abs(v.distance() - src.distance()) < 1e-9
+
+
+def test_check_route_from_detects_time_window_infeasibility(tiny):
+    """check_route_from returns False when the suffix violates a time window."""
+    customers, distances, capacity = tiny
+    depot, c1, c2, c3 = customers
+    # Build a tight-window customer that can't be reached in time after c1
+    from cvrptw.model import Customer
+    import numpy as np
+
+    n = len(customers)
+    tight = Customer(cust_id=n, x=50, y=50, demand=1, ready_time=0, due_date=1, service_time=0)
+    big_dist = np.pad(distances, ((0, 1), (0, 1)), constant_values=999.0)
+    big_dist[n][n] = 0.0
+
+    _, src = check_route([depot, c1], capacity, big_dist)
+    route = [depot, c1, tight, depot]
+    ok, _ = check_route_from(route, src, prefix_end=1)
+    assert not ok

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 import matplotlib.cm as cmx
@@ -34,9 +35,14 @@ def draw_solution(sol: Solution, title: str = '') -> None:
 
 
 def draw_best_solutions(values: np.ndarray) -> None:
-    fig = plt.figure(figsize=(20, 30))
+    n = len(values)
+    if n == 0:
+        return
+    ncols = 2
+    nrows = math.ceil(n / ncols)
+    fig = plt.figure(figsize=(20, 6 * nrows))
     for i, (name, distance, vehicles, sol) in enumerate(values, start=1):
-        ax = fig.add_subplot(5, 2, i)
+        ax = fig.add_subplot(nrows, ncols, i)
         ax.set_title(f"{name[:-4]}: distance={distance:.2f}, vehicles={vehicles}")
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)

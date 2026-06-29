@@ -85,7 +85,7 @@ def ils(
         p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
         t1 = time.time()
         dist_before_ls = current_sol.distance
-        ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts)
+        ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)
         t2 = time.time()
 
         if not (p_changed or ls_changed):

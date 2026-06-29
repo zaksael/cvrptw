@@ -1,9 +1,10 @@
 import random
+import time
 
 import numpy as np
 
 from cvrptw.model import Customer, Solution, Vehicle
-from cvrptw.search import perturbation
+from cvrptw.search import local_search, perturbation
 
 
 def test_perturbation_relocates_into_two_stop_route():
@@ -28,3 +29,21 @@ def test_perturbation_relocates_into_two_stop_route():
     sol = Solution([v_source, v_target])
     changed, _, _ = perturbation(sol, n_moves=1)
     assert changed
+
+
+def test_local_search_stops_at_deadline():
+    """local_search exits via _LimitReached when deadline is already past."""
+    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
+    c1 = Customer(1, 10, 0, 1, 0, 1000, 0)
+    c2 = Customer(2, 20, 0, 1, 0, 1000, 0)
+    distances = np.array([[0., 10., 20.], [10., 0., 10.], [20., 10., 0.]])
+
+    v = Vehicle(10, depot, distances)
+    v.visit(c1)
+    v.visit(c2)
+    v.visit(depot)
+
+    sol = Solution([v])
+    expired = time.time() - 1.0
+    _, _, stats = local_search(sol, max_attempts=1_000_000, deadline=expired)
+    assert stats.n_attempts == 1

@@ -1,4 +1,5 @@
 import random
+import time
 from dataclasses import dataclass
 
 from .model import Solution
@@ -16,7 +17,7 @@ class LSStats:
     exchange_gain: float
 
 
-def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution, LSStats]:
+def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None) -> tuple[bool, Solution, LSStats]:
     class _LimitReached(Exception):
         pass
 
@@ -26,6 +27,8 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
         nonlocal n_attempts
         n_attempts += 1
         if n_attempts == max_attempts:
+            raise _LimitReached
+        if deadline is not None and time.time() >= deadline:
             raise _LimitReached
 
     def intra_relocate(sol: Solution) -> tuple[bool, Solution, float]:

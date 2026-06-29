@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +38,7 @@ def test_greedy_respects_vehicle_limit(c108):
 
 def test_ils_stats_structure():
     """ILS stats have one entry per iteration with consistent, non-negative values."""
+    random.seed(42)
     depot = Customer(0,  0, 0,  0, 0, 1000, 0)
     c1    = Customer(1, 10, 0, 10, 0,  800, 5)
     c2    = Customer(2, 20, 0, 10, 0,  800, 5)
@@ -74,6 +76,7 @@ def test_ils_stats_structure():
 
 def test_ils_preserves_all_customers():
     """ILS must not silently drop any customers across perturbation and local search."""
+    random.seed(42)
     depot = Customer(0,  0, 0,  0, 0, 1000, 0)
     c1    = Customer(1, 10, 0, 10, 0,  800, 5)
     c2    = Customer(2, 20, 0, 10, 0,  800, 5)

@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 
 from cvrptw.model import Customer, Solution, Vehicle
@@ -22,6 +24,7 @@ def test_perturbation_relocates_into_two_stop_route():
     v_target = Vehicle(10, depot, distances)
     v_target.visit(depot)                      # route=[depot, depot], length=2
 
+    random.seed(42)
     sol = Solution([v_source, v_target])
     changed, _, _ = perturbation(sol, n_moves=1)
     assert changed

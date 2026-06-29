@@ -11,6 +11,9 @@ class LSStats:
     cross_improvements: int
     intra_relocate_improvements: int
     exchange_improvements: int
+    cross_gain: float
+    intra_relocate_gain: float
+    exchange_gain: float
 
 
 def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solution, LSStats]:
@@ -25,7 +28,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
         if n_attempts == max_attempts:
             raise _LimitReached
 
-    def intra_relocate(sol: Solution) -> tuple[bool, Solution]:
+    def intra_relocate(sol: Solution) -> tuple[bool, Solution, float]:
         indices = list(range(len(sol.vehicles)))
         random.shuffle(indices)
         for v_i in indices:
@@ -40,13 +43,14 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
                     del new_route[i]
                     new_route.insert(j, c)
                     valid, new_v = check_route_from(new_route, v, min(i, j) - 1)
-                    if valid and v.distance() - new_v.distance() > 1e-3:
+                    gain = v.distance() - new_v.distance()
+                    if valid and gain > 1e-3:
                         new_vehicles = sol.vehicles[:]
                         new_vehicles[v_i] = new_v
-                        return True, Solution(new_vehicles)
-        return False, sol
+                        return True, Solution(new_vehicles), gain
+        return False, sol, 0.0
 
-    def apply_operator(sol: Solution, operator, with_last: bool) -> tuple[bool, Solution]:
+    def apply_operator(sol: Solution, operator, with_last: bool) -> tuple[bool, Solution, float]:
         indices = list(range(len(sol.vehicles)))
         random.shuffle(indices)
         for idx1 in indices:
@@ -69,34 +73,46 @@ def local_search(sol: Solution, max_attempts: int = 200_000) -> tuple[bool, Solu
                                 new_vehicles = sol.vehicles[:]
                                 new_vehicles[idx1] = nv1
                                 new_vehicles[idx2] = nv2
-                                return True, Solution(new_vehicles).without_empty_routes()
-        return False, sol
+                                return True, Solution(new_vehicles).without_empty_routes(), gain
+        return False, sol, 0.0
 
     result = sol
     changes_made = False
     can_move = True
     cross_impr = intra_impr = exch_impr = 0
+    cross_gain = intra_gain = exch_gain = 0.0
     while can_move:
         try:
-            done, result = apply_operator(result, cross, with_last=True)
+            done, result, gain = apply_operator(result, cross, with_last=True)
             if done:
                 changes_made = True
                 cross_impr += 1
+                cross_gain += gain
             else:
-                done, result = intra_relocate(result)
+                done, result, gain = intra_relocate(result)
                 if done:
                     changes_made = True
                     intra_impr += 1
+                    intra_gain += gain
                 else:
-                    done, result = apply_operator(result, exchange, with_last=False)
+                    done, result, gain = apply_operator(result, exchange, with_last=False)
                     if done:
                         changes_made = True
                         exch_impr += 1
+                        exch_gain += gain
                     else:
                         can_move = False
         except _LimitReached:
             break
-    return changes_made, result, LSStats(n_attempts, cross_impr, intra_impr, exch_impr)
+    return changes_made, result, LSStats(
+        n_attempts=n_attempts,
+        cross_improvements=cross_impr,
+        intra_relocate_improvements=intra_impr,
+        exchange_improvements=exch_impr,
+        cross_gain=cross_gain,
+        intra_relocate_gain=intra_gain,
+        exchange_gain=exch_gain,
+    )
 
 
 def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution, int]:

@@ -55,3 +55,47 @@ def draw_best_solutions(values: np.ndarray) -> None:
                     markerfacecolor=color, marker='o', markersize=4)
         if vehicles:
             ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=10)
+
+
+def plot_ils_stats(stats: list, title: str = '') -> None:
+    if not stats:
+        return
+
+    elapsed = [s.elapsed_s for s in stats]
+    distances = [s.distance for s in stats]
+
+    cum_cross = cum_intra = cum_exch = 0.0
+    cum_cross_list: list[float] = []
+    cum_intra_list: list[float] = []
+    cum_exch_list: list[float] = []
+    for s in stats:
+        cum_cross += s.cross_gain
+        cum_intra += s.intra_relocate_gain
+        cum_exch += s.exchange_gain
+        cum_cross_list.append(cum_cross)
+        cum_intra_list.append(cum_intra)
+        cum_exch_list.append(cum_exch)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    if title:
+        fig.suptitle(title, fontsize=13)
+
+    ax1.plot(elapsed, distances, color='steelblue', linewidth=1.5, label='best distance')
+    imp_t = [elapsed[i] for i, s in enumerate(stats) if s.improved]
+    imp_d = [distances[i] for i, s in enumerate(stats) if s.improved]
+    ax1.scatter(imp_t, imp_d, color='green', zorder=5, s=40, label='improvement')
+    ax1.set_xlabel('elapsed (s)')
+    ax1.set_ylabel('best distance')
+    ax1.legend(loc='upper right')
+    ax1.grid(True, alpha=0.3)
+
+    ax2.plot(elapsed, cum_cross_list, label='cross', color='royalblue')
+    ax2.plot(elapsed, cum_intra_list, label='intra_relocate', color='darkorange')
+    ax2.plot(elapsed, cum_exch_list, label='exchange', color='forestgreen')
+    ax2.set_xlabel('elapsed (s)')
+    ax2.set_ylabel('cumulative gain')
+    ax2.legend(loc='upper left')
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()

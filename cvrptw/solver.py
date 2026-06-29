@@ -1,5 +1,5 @@
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -15,7 +15,14 @@ class IterationStats:
     cross_improvements: int
     intra_relocate_improvements: int
     exchange_improvements: int
+    cross_gain: float
+    intra_relocate_gain: float
+    exchange_gain: float
     perturb_moves: int
+    elapsed_s: float
+    dist_before_ls: float
+    ls_time_s: float
+    perturb_time_s: float
 
 
 ILSStats = list[IterationStats]
@@ -74,8 +81,12 @@ def ils(
     start = time.time()
     while time.time() - start < time_limit and n_failed_iters < 20:
         made_iters += 1
+        t0 = time.time()
         p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
+        t1 = time.time()
+        dist_before_ls = current_sol.distance
         ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts)
+        t2 = time.time()
 
         if not (p_changed or ls_changed):
             break
@@ -99,7 +110,14 @@ def ils(
             cross_improvements=ls_stats.cross_improvements,
             intra_relocate_improvements=ls_stats.intra_relocate_improvements,
             exchange_improvements=ls_stats.exchange_improvements,
+            cross_gain=round(ls_stats.cross_gain, 4),
+            intra_relocate_gain=round(ls_stats.intra_relocate_gain, 4),
+            exchange_gain=round(ls_stats.exchange_gain, 4),
             perturb_moves=actual_p_moves,
+            elapsed_s=round(t2 - start, 3),
+            dist_before_ls=round(dist_before_ls, 2),
+            ls_time_s=round(t2 - t1, 3),
+            perturb_time_s=round(t1 - t0, 3),
         ))
 
     return made_iters, best_sol, stats

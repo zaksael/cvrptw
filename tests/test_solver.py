@@ -35,6 +35,43 @@ def test_greedy_respects_vehicle_limit(c108):
     assert len(sol) <= c108.n_vehicles
 
 
+def test_ils_stats_structure():
+    """ILS stats have one entry per iteration with consistent, non-negative values."""
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+    greedy = get_greedy_solution(inst)
+    n_iters, _, stats = ils(greedy, max_ls_attempts=2_000, n_perturbation_moves=2, time_limit=2)
+
+    assert len(stats) == n_iters
+
+    prev_elapsed = -1.0
+    prev_dist = greedy.distance
+    for s in stats:
+        # timing is non-negative and elapsed is non-decreasing
+        assert s.elapsed_s >= 0
+        assert s.ls_time_s >= 0
+        assert s.perturb_time_s >= 0
+        assert s.elapsed_s >= prev_elapsed
+        # gains are non-negative
+        assert s.cross_gain >= 0
+        assert s.intra_relocate_gain >= 0
+        assert s.exchange_gain >= 0
+        # improved flag is consistent with distance change
+        if s.improved:
+            assert s.distance < prev_dist - 1e-4
+        prev_elapsed = s.elapsed_s
+        prev_dist = s.distance
+
+
 def test_ils_preserves_all_customers():
     """ILS must not silently drop any customers across perturbation and local search."""
     depot = Customer(0,  0, 0,  0, 0, 1000, 0)

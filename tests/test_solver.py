@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from cvrptw.io import load_instance
+from cvrptw.io import calculate_distances, load_instance
 from cvrptw.model import Customer, Instance
 from cvrptw.operators import check_route
-from cvrptw.solver import get_greedy_solution
+from cvrptw.solver import get_greedy_solution, ils
 
 C108 = Path(__file__).parent.parent / 'ils' / 'resources' / 'instances' / 'C108.txt'
 
@@ -33,6 +33,25 @@ def test_greedy_routes_are_feasible(c108):
 def test_greedy_respects_vehicle_limit(c108):
     sol = get_greedy_solution(c108)
     assert len(sol) <= c108.n_vehicles
+
+
+def test_ils_preserves_all_customers():
+    """ILS must not silently drop any customers across perturbation and local search."""
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    c4    = Customer(4,  0,20, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3, c4]
+    inst = Instance(
+        n_vehicles=4,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+    greedy = get_greedy_solution(inst)
+    _, final = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2)
+    assert not final.missing_customers(inst)
 
 
 def test_greedy_picks_nearest_when_ready_time_zero():

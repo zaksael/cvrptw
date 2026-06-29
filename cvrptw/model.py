@@ -159,6 +159,10 @@ class Solution:
     def without_empty_routes(self) -> Solution:
         return Solution([v for v in self.vehicles if v.length() > 2])
 
+    def missing_customers(self, instance: Instance) -> set[int]:
+        visited = {c.cust_id for v in self.vehicles for c in v.route.customers}
+        return {c.cust_id for c in instance.customers[1:]} - visited
+
     def __len__(self) -> int:
         return len(self.vehicles)
 

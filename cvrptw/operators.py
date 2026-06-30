@@ -79,6 +79,23 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
     return True, v
 
 
+def _cross2d(o: Customer, a: Customer, b: Customer) -> int:
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+
+
+def segments_cross(a: Customer, b: Customer, c: Customer, d: Customer) -> bool:
+    d1 = _cross2d(c, d, a)
+    d2 = _cross2d(c, d, b)
+    d3 = _cross2d(a, b, c)
+    d4 = _cross2d(a, b, d)
+    return d1 * d2 < 0 and d3 * d4 < 0
+
+
+def two_opt(v: Vehicle, i: int, j: int) -> list[Customer]:
+    c = v.route.customers
+    return c[:i + 1] + c[i + 1:j + 1][::-1] + c[j + 1:]
+
+
 def cross(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
     r1, r2 = v1.route.customers, v2.route.customers
     return r1[:i] + r2[j:], r2[:j] + r1[i:]

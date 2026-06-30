@@ -15,9 +15,11 @@ class IterationStats:
     cross_improvements: int
     intra_relocate_improvements: int
     exchange_improvements: int
+    two_opt_improvements: int
     cross_gain: float
     intra_relocate_gain: float
     exchange_gain: float
+    two_opt_gain: float
     perturb_moves: int
     elapsed_s: float
     dist_before_ls: float
@@ -110,9 +112,11 @@ def ils(
             cross_improvements=ls_stats.cross_improvements,
             intra_relocate_improvements=ls_stats.intra_relocate_improvements,
             exchange_improvements=ls_stats.exchange_improvements,
+            two_opt_improvements=ls_stats.two_opt_improvements,
             cross_gain=round(ls_stats.cross_gain, 4),
             intra_relocate_gain=round(ls_stats.intra_relocate_gain, 4),
             exchange_gain=round(ls_stats.exchange_gain, 4),
+            two_opt_gain=round(ls_stats.two_opt_gain, 4),
             perturb_moves=actual_p_moves,
             elapsed_s=round(t2 - start, 3),
             dist_before_ls=round(dist_before_ls, 2),

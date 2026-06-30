@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 
-from cvrptw.operators import check_route, check_route_from, cross, exchange, relocate
+import numpy as np
+
+from cvrptw.io import calculate_distances
+from cvrptw.model import Customer
+from cvrptw.operators import check_route, check_route_from, cross, exchange, relocate, segments_cross, two_opt
 
 
 def ids(route):
@@ -145,3 +149,46 @@ def test_check_route_from_detects_time_window_infeasibility(tiny):
     route = [depot, c1, tight, depot]
     ok, _ = check_route_from(route, src, prefix_end=1)
     assert not ok
+
+
+def _c(cust_id, x, y):
+    return Customer(cust_id=cust_id, x=x, y=y, demand=0, ready_time=0, due_date=9999, service_time=0)
+
+
+def test_segments_cross():
+    # diagonals of a 10×10 square — proper crossing
+    assert segments_cross(_c(0, 0, 10), _c(1, 10, 0), _c(2, 0, 0), _c(3, 10, 10))
+    # parallel horizontal segments — no crossing
+    assert not segments_cross(_c(0, 0, 0), _c(1, 1, 0), _c(2, 0, 1), _c(3, 1, 1))
+    # T-intersection: one endpoint on the other segment, no cross-through
+    assert not segments_cross(_c(0, 0, 0), _c(1, 2, 0), _c(2, 1, 0), _c(3, 1, 1))
+    # shared endpoint
+    assert not segments_cross(_c(0, 0, 0), _c(1, 1, 0), _c(2, 1, 0), _c(3, 2, 0))
+
+
+def test_two_opt_reverses_segment(tiny):
+    customers, _, _ = tiny
+    depot, c1, c2, c3 = customers
+    v = make_v([depot, c1, c2, c3, depot])
+    result = two_opt(v, i=1, j=3)
+    assert ids(result) == [0, 1, 3, 2, 0]
+
+
+def test_two_opt_fixes_crossing():
+    depot = Customer(cust_id=0, x=5,  y=5,  demand=0, ready_time=0, due_date=9999, service_time=0)
+    c1    = Customer(cust_id=1, x=0,  y=10, demand=1, ready_time=0, due_date=9999, service_time=0)
+    c2    = Customer(cust_id=2, x=10, y=0,  demand=1, ready_time=0, due_date=9999, service_time=0)
+    c3    = Customer(cust_id=3, x=0,  y=0,  demand=1, ready_time=0, due_date=9999, service_time=0)
+    c4    = Customer(cust_id=4, x=10, y=10, demand=1, ready_time=0, due_date=9999, service_time=0)
+    all_customers = [depot, c1, c2, c3, c4]
+    distances = calculate_distances(all_customers)
+    # edge c1→c2 and edge c3→c4 cross geometrically
+    assert segments_cross(c1, c2, c3, c4)
+    route = [depot, c1, c2, c3, c4, depot]
+    _, v = check_route(route, capacity=10, distances=distances)
+    # two_opt(v, 1, 3) reverses custs[2:4] = [c2, c3] → [c3, c2]
+    new_route = two_opt(v, i=1, j=3)
+    assert ids(new_route) == [0, 1, 3, 2, 4, 0]
+    ok, new_v = check_route_from(new_route, v, prefix_end=1)
+    assert ok
+    assert new_v.distance() < v.distance()

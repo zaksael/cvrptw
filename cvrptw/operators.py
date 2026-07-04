@@ -113,3 +113,14 @@ def relocate(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], 
     del r1[i]
     r2.insert(j, c)
     return r1, r2
+
+
+def or_opt(v1: Vehicle, i: int, seg_len: int, v2: Vehicle, j: int, reverse: bool) -> tuple[list[Customer], list[Customer]]:
+    r1 = v1.route.customers[:]
+    seg = r1[i:i + seg_len]
+    del r1[i:i + seg_len]
+    if reverse:
+        seg = seg[::-1]
+    r2 = v2.route.customers[:]
+    r2[j:j] = seg
+    return r1, r2

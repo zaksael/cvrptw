@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 
 from .model import Solution
-from .operators import check_route_from, cross, customer_indices, exchange, segments_cross, two_opt
+from .operators import check_route_from, cross, customer_indices, exchange, or_opt, segments_cross, two_opt
 
 
 @dataclass
@@ -13,10 +13,14 @@ class LSStats:
     intra_relocate_improvements: int
     exchange_improvements: int
     two_opt_improvements: int
+    intra_or_opt_improvements: int
+    or_opt_improvements: int
     cross_gain: float
     intra_relocate_gain: float
     exchange_gain: float
     two_opt_gain: float
+    intra_or_opt_gain: float
+    or_opt_gain: float
 
 
 def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None) -> tuple[bool, Solution, LSStats]:
@@ -76,6 +80,59 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
                         return True, Solution(new_vehicles), gain
         return False, sol, 0.0
 
+    def intra_or_opt(sol: Solution) -> tuple[bool, Solution, float]:
+        indices = list(range(len(sol.vehicles)))
+        random.shuffle(indices)
+        for v_i in indices:
+            v = sol.vehicles[v_i]
+            n = v.length()
+            for seg_len in (2, 3):
+                for i in range(1, n - seg_len):
+                    seg = v.route.customers[i:i + seg_len]
+                    for j in range(1, n - seg_len):
+                        if j == i:
+                            continue
+                        for seg_variant in (seg, seg[::-1]):
+                            _count()
+                            new_route = v.route.customers[:i] + v.route.customers[i + seg_len:]
+                            new_route[j:j] = seg_variant
+                            valid, new_v = check_route_from(new_route, v, min(i, j) - 1)
+                            gain = v.distance() - new_v.distance()
+                            if valid and gain > 1e-3:
+                                new_vehicles = sol.vehicles[:]
+                                new_vehicles[v_i] = new_v
+                                return True, Solution(new_vehicles), gain
+        return False, sol, 0.0
+
+    def apply_or_opt(sol: Solution) -> tuple[bool, Solution, float]:
+        indices = list(range(len(sol.vehicles)))
+        random.shuffle(indices)
+        for idx1 in indices:
+            v1 = sol.vehicles[idx1]
+            n1 = v1.length()
+            for idx2 in indices:
+                if idx1 == idx2:
+                    continue
+                v2 = sol.vehicles[idx2]
+                for seg_len in (2, 3):
+                    for i in range(1, n1 - seg_len):
+                        for j in customer_indices(v2, with_last=True):
+                            for reverse in (False, True):
+                                _count()
+                                r1, r2 = or_opt(v1, i, seg_len, v2, j, reverse)
+                                ok1, nv1 = check_route_from(r1, v1, i - 1)
+                                if not ok1:
+                                    continue
+                                ok2, nv2 = check_route_from(r2, v2, j - 1)
+                                if ok2:
+                                    gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
+                                    if gain > 1e-3:
+                                        new_vehicles = sol.vehicles[:]
+                                        new_vehicles[idx1] = nv1
+                                        new_vehicles[idx2] = nv2
+                                        return True, Solution(new_vehicles).without_empty_routes(), gain
+        return False, sol, 0.0
+
     def apply_operator(sol: Solution, operator, with_last: bool) -> tuple[bool, Solution, float]:
         indices = list(range(len(sol.vehicles)))
         random.shuffle(indices)
@@ -106,7 +163,9 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
     changes_made = False
     can_move = True
     cross_impr = intra_impr = exch_impr = two_opt_impr = 0
+    intra_or_opt_impr = or_opt_impr = 0
     cross_gain = intra_gain = exch_gain = two_opt_gain = 0.0
+    intra_or_opt_gain = or_opt_gain = 0.0
     while can_move:
         try:
             done, result, gain = apply_operator(result, cross, with_last=True)
@@ -127,13 +186,25 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
                         two_opt_impr += 1
                         two_opt_gain += gain
                     else:
-                        done, result, gain = apply_operator(result, exchange, with_last=False)
+                        done, result, gain = intra_or_opt(result)
                         if done:
                             changes_made = True
-                            exch_impr += 1
-                            exch_gain += gain
+                            intra_or_opt_impr += 1
+                            intra_or_opt_gain += gain
                         else:
-                            can_move = False
+                            done, result, gain = apply_operator(result, exchange, with_last=False)
+                            if done:
+                                changes_made = True
+                                exch_impr += 1
+                                exch_gain += gain
+                            else:
+                                done, result, gain = apply_or_opt(result)
+                                if done:
+                                    changes_made = True
+                                    or_opt_impr += 1
+                                    or_opt_gain += gain
+                                else:
+                                    can_move = False
         except _LimitReached:
             break
     return changes_made, result, LSStats(
@@ -142,10 +213,14 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
         intra_relocate_improvements=intra_impr,
         exchange_improvements=exch_impr,
         two_opt_improvements=two_opt_impr,
+        intra_or_opt_improvements=intra_or_opt_impr,
+        or_opt_improvements=or_opt_impr,
         cross_gain=cross_gain,
         intra_relocate_gain=intra_gain,
         exchange_gain=exch_gain,
         two_opt_gain=two_opt_gain,
+        intra_or_opt_gain=intra_or_opt_gain,
+        or_opt_gain=or_opt_gain,
     )
 
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer
-from cvrptw.operators import check_route, check_route_from, cross, exchange, relocate, segments_cross, two_opt
+from cvrptw.operators import check_route, check_route_from, cross, exchange, or_opt, relocate, segments_cross, two_opt
 
 
 def ids(route):
@@ -57,6 +57,37 @@ def test_relocate_moves_customer_between_routes(tiny):
     r1, r2 = relocate(v1, 1, v2, 1)
     assert ids(r1) == [0, 2, 0]
     assert ids(r2) == [0, 1, 3, 0]
+
+
+def test_or_opt_moves_segment_between_routes(tiny):
+    customers, _, _ = tiny
+    depot, c1, c2, c3 = customers
+    # move segment [c1, c2] (positions 1-2 in v1) into v2 at position 1
+    v1 = make_v([depot, c1, c2, depot])
+    v2 = make_v([depot, c3, depot])
+    r1, r2 = or_opt(v1, 1, 2, v2, 1, reverse=False)
+    assert ids(r1) == [0, 0]
+    assert ids(r2) == [0, 1, 2, 3, 0]
+
+
+def test_or_opt_reverses_segment_when_requested(tiny):
+    customers, _, _ = tiny
+    depot, c1, c2, c3 = customers
+    v1 = make_v([depot, c1, c2, depot])
+    v2 = make_v([depot, c3, depot])
+    r1, r2 = or_opt(v1, 1, 2, v2, 1, reverse=True)
+    assert ids(r1) == [0, 0]
+    assert ids(r2) == [0, 2, 1, 3, 0]
+
+
+def test_or_opt_does_not_mutate_original(tiny):
+    customers, _, _ = tiny
+    depot, c1, c2, c3 = customers
+    v1 = make_v([depot, c1, c2, depot])
+    v2 = make_v([depot, c3, depot])
+    or_opt(v1, 1, 2, v2, 1, reverse=False)
+    assert ids(v1.route.customers) == [0, 1, 2, 0]
+    assert ids(v2.route.customers) == [0, 3, 0]
 
 
 def test_check_route_valid(tiny):

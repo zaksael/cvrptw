@@ -91,7 +91,7 @@ def run_benchmark(
         if p.is_file() and p.suffix.lower() == '.txt'
     )
     results = []
-    with tqdm(paths, desc='benchmark', unit='instance', position=0) as pbar:
+    with tqdm(paths, desc='benchmark', unit='instance') as pbar:
         for p in pbar:
             pbar.set_postfix(instance=p.name)
             results.append(run_instance(p, results_dir, perturbation_moves))

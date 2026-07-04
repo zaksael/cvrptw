@@ -103,7 +103,7 @@ def ils(
     stats: ILSStats = []
 
     start = time.time()
-    pbar = tqdm(total=time_limit, desc='ILS', unit='s', position=1, leave=False) if verbose else None
+    pbar = tqdm(total=time_limit, desc='ILS', unit='s', leave=False) if verbose else None
     try:
         while time.time() - start < time_limit and n_failed_iters < 20:
             made_iters += 1

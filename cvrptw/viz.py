@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib.cm as cmx
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from .model import Solution
 
 
-def draw_solution(sol: Solution, title: str = '') -> None:
+def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None) -> None:
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     scalar_map = cmx.ScalarMappable(
@@ -31,6 +32,8 @@ def draw_solution(sol: Solution, title: str = '') -> None:
     if vehicles:
         ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=20)
     plt.title(title)
+    if save_path is not None:
+        fig.savefig(save_path, dpi=100, bbox_inches='tight')
     plt.show()
 
 

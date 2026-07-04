@@ -1,7 +1,8 @@
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import numpy as np
+from tqdm.auto import tqdm
 
 from .model import Customer, Instance, Solution, Vehicle
 from .search import local_search, perturbation
@@ -34,6 +35,21 @@ class IterationStats:
 
 
 ILSStats = list[IterationStats]
+
+
+def summarize_operator_stats(stats: ILSStats) -> dict[str, float]:
+    """Sum every `*_improvements`/`*_gain` field on IterationStats across all iterations."""
+    keys = [f.name for f in fields(IterationStats) if f.name.endswith(('_improvements', '_gain'))]
+    return {k: sum(getattr(s, k) for s in stats) for k in keys}
+
+
+def _active_operators(ls_stats) -> str:
+    parts = [
+        f"{f.name.removesuffix('_improvements')}:{getattr(ls_stats, f.name)}"
+        for f in fields(ls_stats)
+        if f.name.endswith('_improvements') and getattr(ls_stats, f.name)
+    ]
+    return ' '.join(parts)
 
 
 def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
@@ -87,53 +103,64 @@ def ils(
     stats: ILSStats = []
 
     start = time.time()
-    while time.time() - start < time_limit and n_failed_iters < 20:
-        made_iters += 1
-        t0 = time.time()
-        p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
-        t1 = time.time()
-        dist_before_ls = current_sol.distance
-        ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)
-        t2 = time.time()
+    pbar = tqdm(total=time_limit, desc='ILS', unit='s', position=1, leave=False) if verbose else None
+    try:
+        while time.time() - start < time_limit and n_failed_iters < 20:
+            made_iters += 1
+            t0 = time.time()
+            p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
+            t1 = time.time()
+            dist_before_ls = current_sol.distance
+            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)
+            t2 = time.time()
 
-        if not (p_changed or ls_changed):
-            break
+            if pbar is not None:
+                pbar.update(min(t2, start + time_limit) - start - pbar.n)
+                pbar.set_postfix(best=f'{best_dist:.2f}', iter=made_iters, failed=n_failed_iters)
 
-        current_dist = current_sol.distance
-        delta = best_dist - current_dist
-        improved = delta > 1e-3
-        if improved:
-            best_sol = current_sol
-            best_dist = current_dist
-            n_failed_iters = 0
-            if verbose:
-                print(f"New best: {best_dist:.2f} ({delta:+.3f}), vehicles = {len(best_sol)}")
-        else:
-            n_failed_iters += 1
+            if not (p_changed or ls_changed):
+                break
 
-        stats.append(IterationStats(
-            distance=round(best_dist, 2),
-            improved=improved,
-            ls_attempts=ls_stats.n_attempts,
-            cross_improvements=ls_stats.cross_improvements,
-            intra_relocate_improvements=ls_stats.intra_relocate_improvements,
-            exchange_improvements=ls_stats.exchange_improvements,
-            two_opt_improvements=ls_stats.two_opt_improvements,
-            intra_or_opt_improvements=ls_stats.intra_or_opt_improvements,
-            or_opt_improvements=ls_stats.or_opt_improvements,
-            relocate_improvements=ls_stats.relocate_improvements,
-            cross_gain=round(ls_stats.cross_gain, 4),
-            intra_relocate_gain=round(ls_stats.intra_relocate_gain, 4),
-            exchange_gain=round(ls_stats.exchange_gain, 4),
-            two_opt_gain=round(ls_stats.two_opt_gain, 4),
-            intra_or_opt_gain=round(ls_stats.intra_or_opt_gain, 4),
-            or_opt_gain=round(ls_stats.or_opt_gain, 4),
-            relocate_gain=round(ls_stats.relocate_gain, 4),
-            perturb_moves=actual_p_moves,
-            elapsed_s=round(t2 - start, 3),
-            dist_before_ls=round(dist_before_ls, 2),
-            ls_time_s=round(t2 - t1, 3),
-            perturb_time_s=round(t1 - t0, 3),
-        ))
+            current_dist = current_sol.distance
+            delta = best_dist - current_dist
+            improved = delta > 1e-3
+            if improved:
+                best_sol = current_sol
+                best_dist = current_dist
+                n_failed_iters = 0
+                if verbose:
+                    active = _active_operators(ls_stats)
+                    suffix = f" [{active}]" if active else ""
+                    tqdm.write(f"New best: {best_dist:.2f} ({delta:+.3f}), vehicles = {len(best_sol)}{suffix}")
+            else:
+                n_failed_iters += 1
+
+            stats.append(IterationStats(
+                distance=round(best_dist, 2),
+                improved=improved,
+                ls_attempts=ls_stats.n_attempts,
+                cross_improvements=ls_stats.cross_improvements,
+                intra_relocate_improvements=ls_stats.intra_relocate_improvements,
+                exchange_improvements=ls_stats.exchange_improvements,
+                two_opt_improvements=ls_stats.two_opt_improvements,
+                intra_or_opt_improvements=ls_stats.intra_or_opt_improvements,
+                or_opt_improvements=ls_stats.or_opt_improvements,
+                relocate_improvements=ls_stats.relocate_improvements,
+                cross_gain=round(ls_stats.cross_gain, 4),
+                intra_relocate_gain=round(ls_stats.intra_relocate_gain, 4),
+                exchange_gain=round(ls_stats.exchange_gain, 4),
+                two_opt_gain=round(ls_stats.two_opt_gain, 4),
+                intra_or_opt_gain=round(ls_stats.intra_or_opt_gain, 4),
+                or_opt_gain=round(ls_stats.or_opt_gain, 4),
+                relocate_gain=round(ls_stats.relocate_gain, 4),
+                perturb_moves=actual_p_moves,
+                elapsed_s=round(t2 - start, 3),
+                dist_before_ls=round(dist_before_ls, 2),
+                ls_time_s=round(t2 - t1, 3),
+                perturb_time_s=round(t1 - t0, 3),
+            ))
+    finally:
+        if pbar is not None:
+            pbar.close()
 
     return made_iters, best_sol, stats

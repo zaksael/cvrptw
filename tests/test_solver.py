@@ -7,7 +7,7 @@ import pytest
 from cvrptw.io import calculate_distances, load_instance
 from cvrptw.model import Customer, Instance
 from cvrptw.operators import check_route
-from cvrptw.solver import get_greedy_solution, ils
+from cvrptw.solver import IterationStats, get_greedy_solution, ils, summarize_operator_stats
 
 C108 = Path(__file__).parent.parent / 'data' / 'instances' / 'C108.txt'
 
@@ -120,4 +120,39 @@ def test_greedy_picks_nearest_when_ready_time_zero():
 
     sol = get_greedy_solution(inst)
     first_stop = sol.vehicles[0].route.customers[1]
-    assert first_stop is c_near
+    assert first_stop.cust_id == c_near.cust_id
+
+
+def _iteration_stats(**overrides) -> IterationStats:
+    base = dict(
+        distance=0.0, improved=False, ls_attempts=0,
+        cross_improvements=0, intra_relocate_improvements=0, exchange_improvements=0,
+        two_opt_improvements=0, intra_or_opt_improvements=0, or_opt_improvements=0,
+        relocate_improvements=0,
+        cross_gain=0.0, intra_relocate_gain=0.0, exchange_gain=0.0,
+        two_opt_gain=0.0, intra_or_opt_gain=0.0, or_opt_gain=0.0, relocate_gain=0.0,
+        perturb_moves=0, elapsed_s=0.0, dist_before_ls=0.0, ls_time_s=0.0, perturb_time_s=0.0,
+    )
+    base.update(overrides)
+    return IterationStats(**base)
+
+
+def test_summarize_operator_stats_sums_across_iterations():
+    stats = [
+        _iteration_stats(cross_improvements=2, cross_gain=5.0, relocate_improvements=1, relocate_gain=1.5),
+        _iteration_stats(cross_improvements=1, cross_gain=3.0, or_opt_improvements=1, or_opt_gain=2.0),
+    ]
+    totals = summarize_operator_stats(stats)
+    assert totals['cross_improvements'] == 3
+    assert totals['cross_gain'] == 8.0
+    assert totals['relocate_improvements'] == 1
+    assert totals['relocate_gain'] == 1.5
+    assert totals['or_opt_improvements'] == 1
+    assert totals['or_opt_gain'] == 2.0
+    assert totals['exchange_improvements'] == 0
+    assert totals['exchange_gain'] == 0.0
+
+
+def test_summarize_operator_stats_empty():
+    totals = summarize_operator_stats([])
+    assert totals and all(v == 0 for v in totals.values())

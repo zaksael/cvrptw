@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 
 from .model import Solution
-from .operators import check_route_from, cross, customer_indices, exchange, or_opt, segments_cross, two_opt
+from .operators import check_route_from, cross, customer_indices, exchange, or_opt, relocate, segments_cross, two_opt
 
 
 @dataclass
@@ -15,12 +15,14 @@ class LSStats:
     two_opt_improvements: int
     intra_or_opt_improvements: int
     or_opt_improvements: int
+    relocate_improvements: int
     cross_gain: float
     intra_relocate_gain: float
     exchange_gain: float
     two_opt_gain: float
     intra_or_opt_gain: float
     or_opt_gain: float
+    relocate_gain: float
 
 
 def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None) -> tuple[bool, Solution, LSStats]:
@@ -133,6 +135,32 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
                                         return True, Solution(new_vehicles).without_empty_routes(), gain
         return False, sol, 0.0
 
+    def apply_relocate(sol: Solution) -> tuple[bool, Solution, float]:
+        indices = list(range(len(sol.vehicles)))
+        random.shuffle(indices)
+        for idx1 in indices:
+            v1 = sol.vehicles[idx1]
+            for idx2 in indices:
+                if idx1 == idx2:
+                    continue
+                v2 = sol.vehicles[idx2]
+                for i in range(1, v1.length() - 1):
+                    for j in range(1, v2.length()):
+                        _count()
+                        r1, r2 = relocate(v1, i, v2, j)
+                        ok1, nv1 = check_route_from(r1, v1, i - 1)
+                        if not ok1:
+                            continue
+                        ok2, nv2 = check_route_from(r2, v2, j - 1)
+                        if ok2:
+                            gain = v1.distance() + v2.distance() - nv1.distance() - nv2.distance()
+                            if gain > 1e-3:
+                                new_vehicles = sol.vehicles[:]
+                                new_vehicles[idx1] = nv1
+                                new_vehicles[idx2] = nv2
+                                return True, Solution(new_vehicles).without_empty_routes(), gain
+        return False, sol, 0.0
+
     def apply_operator(sol: Solution, operator, with_last: bool) -> tuple[bool, Solution, float]:
         indices = list(range(len(sol.vehicles)))
         random.shuffle(indices)
@@ -163,9 +191,9 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
     changes_made = False
     can_move = True
     cross_impr = intra_impr = exch_impr = two_opt_impr = 0
-    intra_or_opt_impr = or_opt_impr = 0
+    intra_or_opt_impr = or_opt_impr = relocate_impr = 0
     cross_gain = intra_gain = exch_gain = two_opt_gain = 0.0
-    intra_or_opt_gain = or_opt_gain = 0.0
+    intra_or_opt_gain = or_opt_gain = relocate_gain = 0.0
     while can_move:
         try:
             done, result, gain = apply_operator(result, cross, with_last=True)
@@ -198,13 +226,19 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
                                 exch_impr += 1
                                 exch_gain += gain
                             else:
-                                done, result, gain = apply_or_opt(result)
+                                done, result, gain = apply_relocate(result)
                                 if done:
                                     changes_made = True
-                                    or_opt_impr += 1
-                                    or_opt_gain += gain
+                                    relocate_impr += 1
+                                    relocate_gain += gain
                                 else:
-                                    can_move = False
+                                    done, result, gain = apply_or_opt(result)
+                                    if done:
+                                        changes_made = True
+                                        or_opt_impr += 1
+                                        or_opt_gain += gain
+                                    else:
+                                        can_move = False
         except _LimitReached:
             break
     return changes_made, result, LSStats(
@@ -215,12 +249,14 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
         two_opt_improvements=two_opt_impr,
         intra_or_opt_improvements=intra_or_opt_impr,
         or_opt_improvements=or_opt_impr,
+        relocate_improvements=relocate_impr,
         cross_gain=cross_gain,
         intra_relocate_gain=intra_gain,
         exchange_gain=exch_gain,
         two_opt_gain=two_opt_gain,
         intra_or_opt_gain=intra_or_opt_gain,
         or_opt_gain=or_opt_gain,
+        relocate_gain=relocate_gain,
     )
 
 

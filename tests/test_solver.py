@@ -69,6 +69,7 @@ def test_ils_stats_structure():
         assert s.exchange_gain >= 0
         assert s.intra_or_opt_gain >= 0
         assert s.or_opt_gain >= 0
+        assert s.relocate_gain >= 0
         # improved flag is consistent with distance change
         if s.improved:
             assert s.distance < prev_dist - 1e-4

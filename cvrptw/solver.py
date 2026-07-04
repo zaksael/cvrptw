@@ -43,15 +43,6 @@ def summarize_operator_stats(stats: ILSStats) -> dict[str, float]:
     return {k: sum(getattr(s, k) for s in stats) for k in keys}
 
 
-def _active_operators(ls_stats) -> str:
-    parts = [
-        f"{f.name.removesuffix('_improvements')}:{getattr(ls_stats, f.name)}"
-        for f in fields(ls_stats)
-        if f.name.endswith('_improvements') and getattr(ls_stats, f.name)
-    ]
-    return ' '.join(parts)
-
-
 def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
     def most_suitable(current, candidates):
         values = [instance.distances[current.cust_id][c.cust_id] * (c.ready_time + 1) * c.due_date
@@ -89,12 +80,16 @@ def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, 
     return 250_000, 600
 
 
+_ILS_BAR_FORMAT = '{desc}: {percentage:3.0f}%|{bar}| {n:.2f}/{total:.2f}s [{elapsed}<{remaining}]{postfix}'
+
+
 def ils(
     sol: Solution,
     max_ls_attempts: int,
     n_perturbation_moves: int,
     time_limit: int,
     verbose: bool = False,
+    desc: str = 'ILS',
 ) -> tuple[int, Solution, ILSStats]:
     best_sol = current_sol = sol
     best_dist = sol.distance
@@ -103,7 +98,9 @@ def ils(
     stats: ILSStats = []
 
     start = time.time()
-    pbar = tqdm(total=time_limit, desc='ILS', unit='s', leave=False) if verbose else None
+    pbar = tqdm(total=time_limit, desc=desc, unit='s', leave=False, bar_format=_ILS_BAR_FORMAT) if verbose else None
+    if verbose:
+        tqdm.write(f'Initial : distance = {best_dist:.2f}, vehicles = {len(best_sol)}')
     try:
         while time.time() - start < time_limit and n_failed_iters < 20:
             made_iters += 1
@@ -129,9 +126,7 @@ def ils(
                 best_dist = current_dist
                 n_failed_iters = 0
                 if verbose:
-                    active = _active_operators(ls_stats)
-                    suffix = f" [{active}]" if active else ""
-                    tqdm.write(f"New best: {best_dist:.2f} ({delta:+.3f}), vehicles = {len(best_sol)}{suffix}")
+                    tqdm.write(f"New best: distance = {best_dist:.2f} ({-delta:.2f}), vehicles = {len(best_sol)}")
             else:
                 n_failed_iters += 1
 
@@ -154,10 +149,10 @@ def ils(
                 or_opt_gain=round(ls_stats.or_opt_gain, 4),
                 relocate_gain=round(ls_stats.relocate_gain, 4),
                 perturb_moves=actual_p_moves,
-                elapsed_s=round(t2 - start, 3),
+                elapsed_s=round(t2 - start, 2),
                 dist_before_ls=round(dist_before_ls, 2),
-                ls_time_s=round(t2 - t1, 3),
-                perturb_time_s=round(t1 - t0, 3),
+                ls_time_s=round(t2 - t1, 2),
+                perturb_time_s=round(t1 - t0, 2),
             ))
     finally:
         if pbar is not None:

@@ -36,9 +36,6 @@ def run_instance(
     verbose: bool = True,
 ) -> BenchmarkResult:
     path = Path(path)
-    tqdm.write('')
-    tqdm.write('*' * 75)
-    tqdm.write(path.name)
 
     inst = load_instance(path)
     ls_max_moves, time_limit = ls_attempts_and_time_limit(inst.n_vehicles, len(inst.customers))
@@ -47,11 +44,15 @@ def run_instance(
     init_sol = get_greedy_solution(inst)
     init_distance = init_sol.distance
     init_n_vehicles = len(init_sol)
-    n_iters, sol, stats = ils(init_sol, ls_max_moves, perturbation_moves, time_limit, verbose=verbose)
+
+    n_iters, sol, stats = ils(init_sol, ls_max_moves, perturbation_moves, time_limit, verbose=verbose, desc=path.name)
     elapsed = time.time() - start
 
-    tqdm.write(f'Best distance = {sol.distance:.2f}')
-    tqdm.write(f'{elapsed:.2f}/{time_limit:.2f} sec.')
+    improvement_pct = round((init_distance - sol.distance) / init_distance * 100, 2) if init_distance else 0.0
+    tqdm.write(
+        f'{path.name}: best dist={sol.distance:.2f}, vehicles={len(sol)}, '
+        f'{-improvement_pct:.2f}% vs initial, {elapsed:.2f}/{time_limit:.2f} sec.'
+    )
 
     if results_dir is not None:
         results_dir = Path(results_dir)
@@ -61,8 +62,6 @@ def run_instance(
             title=f'{path.name}: dist={sol.distance:.2f}, vehicles={len(sol)}',
             save_path=results_dir / path.with_suffix('.png').name,
         )
-
-    improvement_pct = round((init_distance - sol.distance) / init_distance * 100, 2) if init_distance else 0.0
 
     return BenchmarkResult(
         name=path.name,
@@ -75,8 +74,8 @@ def run_instance(
         init_distance=round(init_distance, 2),
         init_n_vehicles=init_n_vehicles,
         improvement_pct=improvement_pct,
-        total_ls_time_s=round(sum(s.ls_time_s for s in stats), 3),
-        total_perturb_time_s=round(sum(s.perturb_time_s for s in stats), 3),
+        total_ls_time_s=round(sum(s.ls_time_s for s in stats), 2),
+        total_perturb_time_s=round(sum(s.perturb_time_s for s in stats), 2),
         operator_totals=summarize_operator_stats(stats),
     )
 
@@ -91,8 +90,7 @@ def run_benchmark(
         if p.is_file() and p.suffix.lower() == '.txt'
     )
     results = []
-    with tqdm(paths, desc='benchmark', unit='instance') as pbar:
+    with tqdm(paths, desc='ILS', unit='instance') as pbar:
         for p in pbar:
-            pbar.set_postfix(instance=p.name)
             results.append(run_instance(p, results_dir, perturbation_moves))
     return results

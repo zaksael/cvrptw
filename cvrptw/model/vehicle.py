@@ -1,61 +1,7 @@
-from dataclasses import dataclass, field
-
 import numpy as np
 
-
-@dataclass(frozen=True, repr=False)
-class Customer:
-    cust_id: int
-    x: int
-    y: int
-    demand: int
-    ready_time: int
-    due_date: int
-    service_time: int
-
-    def __repr__(self) -> str:
-        return (f"Customer: <{self.cust_id:3}, {self.x:2}, {self.y:2}, {self.demand:2}, "
-                f"{self.ready_time:3}, {self.due_date:4}, {self.service_time:2}>")
-
-
-@dataclass(eq=False)
-class Instance:
-    n_vehicles: int
-    capacity: int
-    customers: list[Customer]
-    distances: np.ndarray
-
-    @property
-    def depot(self) -> Customer:
-        return self.customers[0]
-
-    def __repr__(self) -> str:
-        return (f"Instance(n_vehicles={self.n_vehicles}, capacity={self.capacity}, "
-                f"customers={len(self.customers)}, distances={self.distances.shape})")
-
-
-@dataclass(eq=False)
-class Route:
-    customers: list[Customer]
-    time_points: list[float]
-    leg_distances: list[float]
-    demand_used: list[int] = field(default_factory=lambda: [0])
-    dist_used: list[float] = field(default_factory=lambda: [0.0])
-    _distance: float = field(default=0.0, init=False, repr=False)
-
-    @property
-    def distance(self) -> float:
-        return self._distance
-
-    @property
-    def total_time(self) -> float:
-        return self.time_points[-1]
-
-    def length(self) -> int:
-        return len(self.customers)
-
-    def __repr__(self) -> str:
-        return str([c.cust_id for c in self.customers])
+from .customer import Customer
+from .route import Route
 
 
 class Vehicle:
@@ -142,42 +88,3 @@ class Vehicle:
 
     def __repr__(self) -> str:
         return str([c.cust_id for c in self.route.customers])
-
-
-@dataclass(eq=False)
-class Solution:
-    vehicles: list[Vehicle]
-
-    @property
-    def distance(self) -> float:
-        return sum(v.distance() for v in self.vehicles)
-
-    @property
-    def time(self) -> float:
-        return sum(v.total_time for v in self.vehicles)
-
-    def without_empty_routes(self) -> Solution:
-        return Solution([v for v in self.vehicles if v.length() > 2])
-
-    def missing_customers(self, instance: Instance) -> set[int]:
-        visited = {c.cust_id for v in self.vehicles for c in v.route.customers}
-        return {c.cust_id for c in instance.customers[1:]} - visited
-
-    def __len__(self) -> int:
-        return len(self.vehicles)
-
-    def __iter__(self):
-        return iter(self.vehicles)
-
-    def __repr__(self) -> str:
-        return f"Solution(vehicles={len(self)}, distance={self.distance:.2f})"
-
-    def print_info(self, verbose: bool = False) -> None:
-        print(f"Total time = {self.time:.2f}, distance = {self.distance:.2f}, vehicles = {len(self)}:")
-        for i, v in enumerate(sorted(self.vehicles, key=lambda v: v.distance())):
-            if verbose:
-                print('-' * 75)
-                v.print_info()
-            else:
-                print(f"{i+1:2}) Time={v.total_time:7.2f}, distance={v.distance():6.2f}, "
-                      f"length={v.length():2}, left capacity={v.left_capacity:3}: {v}")

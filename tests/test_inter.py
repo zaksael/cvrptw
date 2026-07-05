@@ -1,8 +1,7 @@
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Solution, Vehicle
-from cvrptw.operators import cross, exchange
 from cvrptw.search.budget import AttemptBudget
-from cvrptw.search.inter import apply_operator, apply_or_opt, apply_relocate
+from cvrptw.search.inter import apply_operator, apply_or_opt, apply_relocate, cross_suffix, exchange_suffix
 
 
 def _symmetric_two_vehicle_solution() -> Solution:
@@ -116,7 +115,7 @@ def test_apply_operator_cross_finds_improving_swap():
     v2.visit(depot)
 
     sol = Solution([v1, v2])
-    changed, result, gain = apply_operator(sol, cross, with_last=True, budget=AttemptBudget(max_attempts=3000))
+    changed, result, gain = apply_operator(sol, cross_suffix, with_last=True, budget=AttemptBudget(max_attempts=3000))
     assert changed
     assert gain > 0
     assert result.distance < sol.distance
@@ -143,7 +142,7 @@ def test_apply_operator_exchange_finds_improving_swap():
     v2.visit(depot)
 
     sol = Solution([v1, v2])
-    changed, result, gain = apply_operator(sol, exchange, with_last=False, budget=AttemptBudget(max_attempts=3000))
+    changed, result, gain = apply_operator(sol, exchange_suffix, with_last=False, budget=AttemptBudget(max_attempts=3000))
     assert changed
     assert gain > 0
     assert result.distance < sol.distance
@@ -151,7 +150,7 @@ def test_apply_operator_exchange_finds_improving_swap():
 
 def test_apply_operator_cross_no_improvement():
     sol = _symmetric_two_vehicle_solution()
-    changed, result, gain = apply_operator(sol, cross, with_last=True, budget=AttemptBudget(max_attempts=2000))
+    changed, result, gain = apply_operator(sol, cross_suffix, with_last=True, budget=AttemptBudget(max_attempts=2000))
     assert not changed
     assert gain == 0.0
     assert result is sol
@@ -159,7 +158,7 @@ def test_apply_operator_cross_no_improvement():
 
 def test_apply_operator_exchange_no_improvement():
     sol = _symmetric_two_vehicle_solution()
-    changed, result, gain = apply_operator(sol, exchange, with_last=False, budget=AttemptBudget(max_attempts=2000))
+    changed, result, gain = apply_operator(sol, exchange_suffix, with_last=False, budget=AttemptBudget(max_attempts=2000))
     assert not changed
     assert gain == 0.0
     assert result is sol

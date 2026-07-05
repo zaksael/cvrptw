@@ -11,18 +11,17 @@ def check_route(route: list[Customer], capacity: int, distances: np.ndarray) -> 
     return True, v
 
 
-def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tuple[bool, Vehicle]:
-    """Validate route[prefix_end+1:], resuming from src's state at position prefix_end.
+def check_route_from(suffix: list[Customer], src: Vehicle, prefix_end: int) -> tuple[bool, Vehicle]:
+    """Validate suffix, resuming from src's state at position prefix_end.
 
-    route[:prefix_end+1] must equal src.route.customers[:prefix_end+1].
-    Skips replaying the already-validated prefix, cutting try_visit calls
-    proportionally to how deep into the route the modification starts.
+    suffix must be exactly what src.route.customers[prefix_end+1:] should
+    become. Skips replaying the already-validated prefix, cutting try_visit
+    calls proportionally to how deep into the route the modification starts.
     Prefix lists are sliced only on success — infeasible routes incur no copy cost.
     """
     src_route = src.route
     dm = src.dist_matrix
     depot = src._depot
-    pe = prefix_end + 1
 
     left_cap = src.initial_capacity - src_route.demand_used[prefix_end]
     dep_time = src_route.time_points[prefix_end] + src_route.customers[prefix_end].service_time
@@ -31,8 +30,7 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
     suffix_legs: list[float] = []
     suffix_arrivals: list[float] = []
 
-    for i in range(pe, len(route)):
-        c = route[i]
+    for c in suffix:
         if left_cap < c.demand:
             return False, src
         d = dm[last_id][c.cust_id]
@@ -47,12 +45,12 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
         suffix_arrivals.append(arrival)
 
     # Route is valid — slice prefix once and build full lists
-    suffix_customers = route[pe:]
+    pe = prefix_end + 1
     cum_d = src_route.demand_used[prefix_end]
     cum_dist = src_route.dist_used[prefix_end]
     demand_used = src_route.demand_used[:pe]
     dist_used = src_route.dist_used[:pe]
-    for c, d in zip(suffix_customers, suffix_legs):
+    for c, d in zip(suffix, suffix_legs):
         cum_d += c.demand
         cum_dist += d
         demand_used.append(cum_d)
@@ -65,7 +63,7 @@ def check_route_from(route: list[Customer], src: Vehicle, prefix_end: int) -> tu
     v.left_capacity = left_cap
     v._departure_time = dep_time
     v.route = Route(
-        customers=src_route.customers[:pe] + suffix_customers,
+        customers=src_route.customers[:pe] + suffix,
         time_points=src_route.time_points[:pe] + suffix_arrivals,
         leg_distances=src_route.leg_distances[:pe] + suffix_legs,
         demand_used=demand_used,

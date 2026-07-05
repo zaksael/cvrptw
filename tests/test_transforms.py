@@ -109,6 +109,6 @@ def test_two_opt_fixes_crossing():
     # two_opt(v, 1, 3) reverses custs[2:4] = [c2, c3] → [c3, c2]
     new_route = two_opt(v, i=1, j=3)
     assert ids(new_route) == [0, 1, 3, 2, 4, 0]
-    ok, new_v = check_route_from(new_route, v, prefix_end=1)
+    ok, new_v = check_route_from(new_route[2:], v, prefix_end=1)
     assert ok
     assert new_v.distance() < v.distance()

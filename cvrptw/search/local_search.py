@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
 from ..model import Solution
-from ..operators import cross, exchange
 from .budget import AttemptBudget, LimitReached
-from .inter import apply_operator, apply_or_opt, apply_relocate
+from .inter import apply_operator, apply_or_opt, apply_relocate, cross_suffix, exchange_suffix
 from .intra import intra_or_opt, intra_relocate, intra_two_opt
 
 
@@ -38,7 +37,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
     intra_or_opt_gain = or_opt_gain = relocate_gain = 0.0
     while can_move:
         try:
-            done, result, gain = apply_operator(result, cross, with_last=True, budget=budget)
+            done, result, gain = apply_operator(result, cross_suffix, with_last=True, budget=budget)
             if done:
                 changes_made = True
                 cross_impr += 1
@@ -62,7 +61,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
                             intra_or_opt_impr += 1
                             intra_or_opt_gain += gain
                         else:
-                            done, result, gain = apply_operator(result, exchange, with_last=False, budget=budget)
+                            done, result, gain = apply_operator(result, exchange_suffix, with_last=False, budget=budget)
                             if done:
                                 changes_made = True
                                 exch_impr += 1

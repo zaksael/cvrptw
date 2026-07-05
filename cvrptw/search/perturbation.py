@@ -1,12 +1,10 @@
-import random
-
 from ..model import Solution
 from ..operators import check_route_from
+from ._util import shuffled_vehicle_indices
 
 
 def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
-    indices = list(range(len(sol.vehicles)))
-    random.shuffle(indices)
+    indices = shuffled_vehicle_indices(sol)
     for v1_idx in indices:
         v1 = sol.vehicles[v1_idx]
         for v2_idx in indices:
@@ -17,14 +15,14 @@ def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
                 c_id = v1.route.customers[i].cust_id
                 if c_id in moved_ids:
                     continue
-                r1 = v1.route.customers[:i] + v1.route.customers[i + 1:]
-                ok1, nv1 = check_route_from(r1, v1, i - 1)
+                r1_suffix = v1.route.customers[i + 1:]
+                ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
                 if not ok1:
                     continue
                 c = v1.route.customers[i]
                 for j in range(1, v2.length()):
-                    r2 = v2.route.customers[:j] + [c] + v2.route.customers[j:]
-                    ok2, nv2 = check_route_from(r2, v2, j - 1)
+                    r2_suffix = [c] + v2.route.customers[j:]
+                    ok2, nv2 = check_route_from(r2_suffix, v2, j - 1)
                     if ok2:
                         new_vehicles = sol.vehicles[:]
                         new_vehicles[v1_idx] = nv1

@@ -3,7 +3,9 @@ import random
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Instance
 from cvrptw.search import OPERATOR_NAMES
-from cvrptw.solver import IterationStats, get_greedy_solution, ils, summarize_operator_stats
+from cvrptw.solver import (
+    IterationStats, get_greedy_solution, ils, ls_attempts_and_time_limit, summarize_operator_stats,
+)
 
 
 def test_ils_stats_structure():
@@ -153,3 +155,9 @@ def test_summarize_operator_stats_sums_across_iterations():
 def test_summarize_operator_stats_empty():
     totals = summarize_operator_stats([])
     assert totals and all(v == 0 for v in totals.values())
+
+
+def test_ls_attempts_and_time_limit_scales_with_instance_size():
+    assert ls_attempts_and_time_limit(25, 101) == (250_000, 600)
+    assert ls_attempts_and_time_limit(26, 101) == (1_000_000, 1800)   # vehicles over threshold
+    assert ls_attempts_and_time_limit(25, 102) == (1_000_000, 1800)   # customers over threshold

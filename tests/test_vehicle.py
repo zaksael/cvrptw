@@ -63,6 +63,16 @@ def test_cannot_visit_when_return_arrives_late():
     assert not v.can_visit(c)
 
 
+def test_try_visit_rejects_past_customer_due_date():
+    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
+    c = Customer(1, 10, 0, 5, 0, 9, 0)                 # due_date=9, travel=10 → arrive at 10 > 9
+    distances = np.array([[0., 10.], [10., 0.]])
+    v = Vehicle(100, depot, distances)
+    assert not v.try_visit(c)
+    assert v.route.customers == [depot]                 # no mutation on failure
+    assert v.left_capacity == 100
+
+
 def test_cannot_visit_when_waiting_pushes_return_past_depot_closing():
     """The return-to-depot check must use the ready_time-clamped arrival.
 

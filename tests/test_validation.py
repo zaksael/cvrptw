@@ -91,3 +91,21 @@ def test_check_route_from_detects_time_window_infeasibility(tiny):
     _, src = check_route([depot, c1], capacity, big_dist)
     ok, _ = check_route_from([tight, depot], src, prefix_end=1)
     assert not ok
+
+
+def test_check_route_from_rejects_when_waiting_pushes_return_past_depot_closing():
+    """The depot-return lookahead must use the ready_time-clamped arrival.
+
+    Arrive at c at t=10, wait until ready_time=90, service to 95, return at
+    105 > depot due_date 100 — infeasible even though the un-clamped check
+    (10+5+10=25 <= 100) would pass. Same scenario as the Vehicle-level
+    regression test, exercised through the hot-path validator.
+    """
+    depot = Customer(0, 0, 0, 0, 0, 100, 0)
+    c = Customer(1, 10, 0, 5, 90, 95, 5)
+    distances = np.array([[0., 10.], [10., 0.]])
+
+    _, src = check_route([depot], capacity=100, distances=distances)
+    ok, res = check_route_from([c, depot], src, prefix_end=0)
+    assert not ok
+    assert res is src                                   # failure returns src untouched

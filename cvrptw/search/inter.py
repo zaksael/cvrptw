@@ -15,15 +15,16 @@ def apply_or_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, 
             v2 = sol.vehicles[idx2]
             for seg_len in (2, 3):
                 for i in range(1, n1 - seg_len):
+                    budget.tick()
+                    seg = v1.route.customers[i:i + seg_len]
+                    r1_suffix = v1.route.customers[i + seg_len:]
+                    ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
+                    if not ok1:
+                        continue
+                    seg_reversed = seg[::-1]
                     for j in customer_indices(v2, with_last=True):
-                        for reverse in (False, True):
+                        for seg_variant in (seg, seg_reversed):
                             budget.tick()
-                            seg = v1.route.customers[i:i + seg_len]
-                            seg_variant = seg[::-1] if reverse else seg
-                            r1_suffix = v1.route.customers[i + seg_len:]
-                            ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
-                            if not ok1:
-                                continue
                             r2_suffix = seg_variant + v2.route.customers[j:]
                             ok2, nv2 = check_route_from(r2_suffix, v2, j - 1)
                             if ok2:
@@ -45,13 +46,14 @@ def apply_relocate(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution
                 continue
             v2 = sol.vehicles[idx2]
             for i in range(1, v1.length() - 1):
+                budget.tick()
+                c = v1.route.customers[i]
+                r1_suffix = v1.route.customers[i + 1:]
+                ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
+                if not ok1:
+                    continue
                 for j in range(1, v2.length()):
                     budget.tick()
-                    c = v1.route.customers[i]
-                    r1_suffix = v1.route.customers[i + 1:]
-                    ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
-                    if not ok1:
-                        continue
                     r2_suffix = [c] + v2.route.customers[j:]
                     ok2, nv2 = check_route_from(r2_suffix, v2, j - 1)
                     if ok2:

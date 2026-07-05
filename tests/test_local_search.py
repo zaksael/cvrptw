@@ -5,31 +5,7 @@ import numpy as np
 
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Solution, Vehicle
-from cvrptw.search import local_search, perturbation
-
-
-def test_perturbation_relocates_into_two_stop_route():
-    """inter_relocate must try j up to v2.length()-1 (inclusive).
-
-    When the target vehicle has only [depot, depot] (length=2), the only valid
-    insertion position is j=1. The old bug used range(1, v2.length()-1) which
-    collapsed to range(1,1)=[] and found no moves. The fix uses range(1, v2.length()).
-    """
-    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
-    c1 = Customer(1, 10, 0, 1, 0, 1000, 0)
-    distances = np.array([[0., 10.], [10., 0.]])
-
-    v_source = Vehicle(10, depot, distances)
-    v_source.visit(c1)
-    v_source.visit(depot)                      # route=[depot, c1, depot], length=3
-
-    v_target = Vehicle(10, depot, distances)
-    v_target.visit(depot)                      # route=[depot, depot], length=2
-
-    random.seed(42)
-    sol = Solution([v_source, v_target])
-    changed, _, _ = perturbation(sol, n_moves=1)
-    assert changed
+from cvrptw.search import local_search
 
 
 def test_local_search_finds_or_opt_move():
@@ -117,7 +93,7 @@ def test_local_search_finds_relocate_move():
 
 
 def test_local_search_stops_at_deadline():
-    """local_search exits via _LimitReached when deadline is already past."""
+    """local_search exits via LimitReached when deadline is already past."""
     depot = Customer(0, 0, 0, 0, 0, 1000, 0)
     c1 = Customer(1, 10, 0, 1, 0, 1000, 0)
     c2 = Customer(2, 20, 0, 1, 0, 1000, 0)

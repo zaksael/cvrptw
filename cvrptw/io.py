@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics.pairwise import euclidean_distances
 
 from .model import Customer, Instance, Solution
 
@@ -22,8 +21,9 @@ def load_instance(file_path: str | Path) -> Instance:
 
 
 def calculate_distances(customers: list[Customer]) -> np.ndarray:
-    coords = [(c.x, c.y) for c in customers]
-    return euclidean_distances(coords, coords)
+    coords = np.array([(c.x, c.y) for c in customers], dtype=float)
+    diffs = coords[:, None, :] - coords[None, :, :]
+    return np.hypot(diffs[..., 0], diffs[..., 1])
 
 
 def save_solution(file_path: str | Path, sol: Solution) -> None:

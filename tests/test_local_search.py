@@ -38,11 +38,11 @@ def test_local_search_finds_or_opt_move():
 
     assert changed
     assert result.distance < sol.distance - 1e-3
-    assert stats.intra_or_opt_improvements > 0
-    assert stats.intra_relocate_improvements == 0
-    assert stats.two_opt_improvements == 0
-    assert stats.cross_improvements == 0
-    assert stats.exchange_improvements == 0
+    assert stats.improvements['intra_or_opt'] > 0
+    assert stats.improvements['intra_relocate'] == 0
+    assert stats.improvements['two_opt'] == 0
+    assert stats.improvements['cross'] == 0
+    assert stats.improvements['exchange'] == 0
 
 
 def test_local_search_finds_relocate_move():
@@ -83,13 +83,13 @@ def test_local_search_finds_relocate_move():
 
     assert changed
     assert result.distance < sol.distance - 1e-3
-    assert stats.relocate_improvements == 1
-    assert stats.cross_improvements == 0
-    assert stats.exchange_improvements == 0
-    assert stats.intra_relocate_improvements == 0
-    assert stats.two_opt_improvements == 0
-    assert stats.intra_or_opt_improvements == 0
-    assert stats.or_opt_improvements == 0
+    assert stats.improvements['relocate'] == 1
+    assert stats.improvements['cross'] == 0
+    assert stats.improvements['exchange'] == 0
+    assert stats.improvements['intra_relocate'] == 0
+    assert stats.improvements['two_opt'] == 0
+    assert stats.improvements['intra_or_opt'] == 0
+    assert stats.improvements['or_opt'] == 0
 
 
 def test_local_search_stops_at_deadline():

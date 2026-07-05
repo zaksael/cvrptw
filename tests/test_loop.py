@@ -2,6 +2,7 @@ import random
 
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Instance
+from cvrptw.search import OPERATOR_NAMES
 from cvrptw.solver import IterationStats, get_greedy_solution, ils, summarize_operator_stats
 
 
@@ -33,12 +34,7 @@ def test_ils_stats_structure():
         assert s.perturb_time_s >= 0
         assert s.elapsed_s >= prev_elapsed
         # gains are non-negative
-        assert s.cross_gain >= 0
-        assert s.intra_relocate_gain >= 0
-        assert s.exchange_gain >= 0
-        assert s.intra_or_opt_gain >= 0
-        assert s.or_opt_gain >= 0
-        assert s.relocate_gain >= 0
+        assert all(g >= 0 for g in s.gains.values())
         # improved flag is consistent with distance change
         if s.improved:
             assert s.distance < prev_dist - 1e-4
@@ -66,24 +62,19 @@ def test_ils_preserves_all_customers():
     assert not final.missing_customers(inst)
 
 
-def _iteration_stats(**overrides) -> IterationStats:
-    base = dict(
+def _iteration_stats(improvements: dict[str, int] | None = None, gains: dict[str, float] | None = None) -> IterationStats:
+    return IterationStats(
         distance=0.0, improved=False, ls_attempts=0,
-        cross_improvements=0, intra_relocate_improvements=0, exchange_improvements=0,
-        two_opt_improvements=0, intra_or_opt_improvements=0, or_opt_improvements=0,
-        relocate_improvements=0,
-        cross_gain=0.0, intra_relocate_gain=0.0, exchange_gain=0.0,
-        two_opt_gain=0.0, intra_or_opt_gain=0.0, or_opt_gain=0.0, relocate_gain=0.0,
+        improvements=dict.fromkeys(OPERATOR_NAMES, 0) | (improvements or {}),
+        gains=dict.fromkeys(OPERATOR_NAMES, 0.0) | (gains or {}),
         perturb_moves=0, elapsed_s=0.0, dist_before_ls=0.0, ls_time_s=0.0, perturb_time_s=0.0,
     )
-    base.update(overrides)
-    return IterationStats(**base)
 
 
 def test_summarize_operator_stats_sums_across_iterations():
     stats = [
-        _iteration_stats(cross_improvements=2, cross_gain=5.0, relocate_improvements=1, relocate_gain=1.5),
-        _iteration_stats(cross_improvements=1, cross_gain=3.0, or_opt_improvements=1, or_opt_gain=2.0),
+        _iteration_stats(improvements={'cross': 2, 'relocate': 1}, gains={'cross': 5.0, 'relocate': 1.5}),
+        _iteration_stats(improvements={'cross': 1, 'or_opt': 1}, gains={'cross': 3.0, 'or_opt': 2.0}),
     ]
     totals = summarize_operator_stats(stats)
     assert totals['cross_improvements'] == 3

@@ -73,17 +73,13 @@ def plot_ils_stats(stats: list, title: str = '') -> None:
     elapsed = [s.elapsed_s for s in stats]
     distances = [s.distance for s in stats]
 
-    cum_cross = cum_intra = cum_exch = 0.0
-    cum_cross_list: list[float] = []
-    cum_intra_list: list[float] = []
-    cum_exch_list: list[float] = []
+    names = list(stats[0].gains)
+    running = dict.fromkeys(names, 0.0)
+    cumulative: dict[str, list[float]] = {name: [] for name in names}
     for s in stats:
-        cum_cross += s.cross_gain
-        cum_intra += s.intra_relocate_gain
-        cum_exch += s.exchange_gain
-        cum_cross_list.append(cum_cross)
-        cum_intra_list.append(cum_intra)
-        cum_exch_list.append(cum_exch)
+        for name in names:
+            running[name] += s.gains[name]
+            cumulative[name].append(running[name])
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     if title:
@@ -98,9 +94,8 @@ def plot_ils_stats(stats: list, title: str = '') -> None:
     ax1.legend(loc='upper right')
     ax1.grid(True, alpha=0.3)
 
-    ax2.plot(elapsed, cum_cross_list, label='cross', color='royalblue')
-    ax2.plot(elapsed, cum_intra_list, label='intra_relocate', color='darkorange')
-    ax2.plot(elapsed, cum_exch_list, label='exchange', color='forestgreen')
+    for name in names:
+        ax2.plot(elapsed, cumulative[name], label=name)
     ax2.set_xlabel('elapsed (s)')
     ax2.set_ylabel('cumulative gain')
     ax2.legend(loc='upper left')

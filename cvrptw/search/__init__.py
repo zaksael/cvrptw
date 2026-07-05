@@ -1,4 +1,4 @@
-from .local_search import LSStats, local_search
+from .local_search import OPERATOR_NAMES, LSStats, local_search
 from .perturbation import perturbation
 
-__all__ = ["LSStats", "local_search", "perturbation"]
+__all__ = ["OPERATOR_NAMES", "LSStats", "local_search", "perturbation"]

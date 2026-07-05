@@ -1,10 +1,10 @@
 import time
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 
 from tqdm.auto import tqdm
 
 from ..model import Solution
-from ..search import local_search, perturbation
+from ..search import OPERATOR_NAMES, local_search, perturbation
 
 
 @dataclass
@@ -12,20 +12,8 @@ class IterationStats:
     distance: float
     improved: bool
     ls_attempts: int
-    cross_improvements: int
-    intra_relocate_improvements: int
-    exchange_improvements: int
-    two_opt_improvements: int
-    intra_or_opt_improvements: int
-    or_opt_improvements: int
-    relocate_improvements: int
-    cross_gain: float
-    intra_relocate_gain: float
-    exchange_gain: float
-    two_opt_gain: float
-    intra_or_opt_gain: float
-    or_opt_gain: float
-    relocate_gain: float
+    improvements: dict[str, int]
+    gains: dict[str, float]
     perturb_moves: int
     elapsed_s: float
     dist_before_ls: float
@@ -37,9 +25,13 @@ ILSStats = list[IterationStats]
 
 
 def summarize_operator_stats(stats: ILSStats) -> dict[str, float]:
-    """Sum every `*_improvements`/`*_gain` field on IterationStats across all iterations."""
-    keys = [f.name for f in fields(IterationStats) if f.name.endswith(('_improvements', '_gain'))]
-    return {k: sum(getattr(s, k) for s in stats) for k in keys}
+    """Sum per-operator improvements/gains across all iterations, keyed
+    `{operator}_improvements` / `{operator}_gain`."""
+    totals: dict[str, float] = {}
+    for name in OPERATOR_NAMES:
+        totals[f'{name}_improvements'] = sum(s.improvements[name] for s in stats)
+        totals[f'{name}_gain'] = sum(s.gains[name] for s in stats)
+    return totals
 
 
 def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, int]:
@@ -102,20 +94,8 @@ def ils(
                 distance=round(best_dist, 2),
                 improved=improved,
                 ls_attempts=ls_stats.n_attempts,
-                cross_improvements=ls_stats.cross_improvements,
-                intra_relocate_improvements=ls_stats.intra_relocate_improvements,
-                exchange_improvements=ls_stats.exchange_improvements,
-                two_opt_improvements=ls_stats.two_opt_improvements,
-                intra_or_opt_improvements=ls_stats.intra_or_opt_improvements,
-                or_opt_improvements=ls_stats.or_opt_improvements,
-                relocate_improvements=ls_stats.relocate_improvements,
-                cross_gain=round(ls_stats.cross_gain, 4),
-                intra_relocate_gain=round(ls_stats.intra_relocate_gain, 4),
-                exchange_gain=round(ls_stats.exchange_gain, 4),
-                two_opt_gain=round(ls_stats.two_opt_gain, 4),
-                intra_or_opt_gain=round(ls_stats.intra_or_opt_gain, 4),
-                or_opt_gain=round(ls_stats.or_opt_gain, 4),
-                relocate_gain=round(ls_stats.relocate_gain, 4),
+                improvements=ls_stats.improvements,
+                gains={k: round(v, 4) for k, v in ls_stats.gains.items()},
                 perturb_moves=actual_p_moves,
                 elapsed_s=round(t2 - start, 2),
                 dist_before_ls=round(dist_before_ls, 2),

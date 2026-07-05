@@ -54,9 +54,9 @@ def test_draw_best_solutions_empty_list_does_not_raise():
 def test_plot_ils_stats_does_not_raise():
     stats = [
         SimpleNamespace(elapsed_s=1.0, distance=100.0, improved=True,
-                         cross_gain=5.0, intra_relocate_gain=0.0, exchange_gain=0.0),
+                         gains={'cross': 5.0, 'intra_relocate': 0.0, 'exchange': 0.0}),
         SimpleNamespace(elapsed_s=2.0, distance=95.0, improved=False,
-                         cross_gain=5.0, intra_relocate_gain=2.0, exchange_gain=0.0),
+                         gains={'cross': 5.0, 'intra_relocate': 2.0, 'exchange': 0.0}),
     ]
     plot_ils_stats(stats, title='test')
 

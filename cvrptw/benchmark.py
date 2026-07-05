@@ -1,4 +1,5 @@
 import time
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -42,6 +43,13 @@ def run_instance(
 
     start = time.time()
     init_sol = get_greedy_solution(inst)
+    missing = init_sol.missing_customers(inst)
+    if missing:
+        warnings.warn(
+            f'{path.name}: greedy construction left {len(missing)} customers '
+            f'unassigned ({sorted(missing)}); reported distance is for an incomplete solution',
+            stacklevel=2,
+        )
     init_distance = init_sol.distance
     init_n_vehicles = len(init_sol)
 

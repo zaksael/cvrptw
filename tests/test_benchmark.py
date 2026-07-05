@@ -3,6 +3,8 @@ matplotlib.use('Agg')
 
 from pathlib import Path
 
+import pytest
+
 from cvrptw.benchmark import BenchmarkResult, run_benchmark, run_instance
 
 
@@ -69,6 +71,15 @@ def test_run_instance_without_results_dir(tmp_path):
 
     remaining = {p.name for p in tmp_path.iterdir()}
     assert remaining == {'inst.txt'}
+
+
+def test_run_instance_warns_when_customers_left_unassigned(tmp_path):
+    path = tmp_path / 'inst.txt'
+    # one vehicle of capacity 1 can serve only one of the three unit-demand customers
+    _write_instance(path, n_vehicles=1, capacity=1, customers=_TINY_CUSTOMERS)
+
+    with pytest.warns(UserWarning, match='unassigned'):
+        run_instance(path, results_dir=None, verbose=False)
 
 
 def test_run_benchmark_iterates_directory_in_sorted_order(tmp_path):

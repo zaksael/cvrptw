@@ -50,6 +50,7 @@ def ils(
     time_limit: int,
     verbose: bool = False,
     desc: str = 'ILS',
+    restart_from_best: bool = False,
 ) -> tuple[int, Solution, ILSStats]:
     best_sol = current_sol = sol
     best_dist = sol.distance
@@ -89,6 +90,8 @@ def ils(
                     tqdm.write(f"New best: distance = {best_dist:.2f} ({-delta:.2f}), vehicles = {len(best_sol)}")
             else:
                 n_failed_iters += 1
+                if restart_from_best:
+                    current_sol = best_sol
 
             stats.append(IterationStats(
                 distance=round(best_dist, 2),

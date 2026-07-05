@@ -13,9 +13,7 @@ if TYPE_CHECKING:
     from .model import Solution
 
 
-def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None) -> None:
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111)
+def _draw_routes(ax, sol: Solution, depot_markersize: int) -> None:
     scalar_map = cmx.ScalarMappable(
         norm=colors.Normalize(vmin=0, vmax=len(sol)),
         cmap=plt.get_cmap('gist_rainbow'),
@@ -30,7 +28,13 @@ def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None =
                 linestyle='-', color=color, linewidth=1.5,
                 markerfacecolor=color, marker='o', markersize=4)
     if vehicles:
-        ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=20)
+        ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=depot_markersize)
+
+
+def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None) -> None:
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111)
+    _draw_routes(ax, sol, depot_markersize=20)
     plt.title(title)
     if save_path is not None:
         fig.savefig(save_path, dpi=100, bbox_inches='tight')
@@ -49,21 +53,7 @@ def draw_best_solutions(values: np.ndarray) -> None:
         ax.set_title(f"{name[:-4]}: distance={distance:.2f}, vehicles={vehicles}")
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
-        scalar_map = cmx.ScalarMappable(
-            norm=colors.Normalize(vmin=0, vmax=len(sol)),
-            cmap=plt.get_cmap('gist_rainbow'),
-        )
-        vehicles = sorted(sol, key=lambda v: v.length())
-        for v_i, v in enumerate(vehicles):
-            c_x = np.array([c.x for c in v.route.customers])
-            c_y = np.array([c.y for c in v.route.customers])
-            edges = np.array([[i, i + 1] for i in range(v.route.length() - 1)])
-            color = scalar_map.to_rgba(v_i)
-            ax.plot(c_x[edges.T], c_y[edges.T],
-                    linestyle='-', color=color, linewidth=1.5,
-                    markerfacecolor=color, marker='o', markersize=4)
-        if vehicles:
-            ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=10)
+        _draw_routes(ax, sol, depot_markersize=10)
 
 
 def plot_ils_stats(stats: list, title: str = '') -> None:

@@ -114,37 +114,37 @@ name = "cvrptw"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "ipykernel" },
-    { name = "ipywidgets" },
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "pandas" },
-    { name = "pandas-stubs" },
-    { name = "pytest" },
     { name = "scikit-learn" },
     { name = "tqdm" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "ipykernel" },
+    { name = "ipywidgets" },
+    { name = "pandas" },
+    { name = "pandas-stubs" },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "ipykernel", specifier = ">=7.3.0" },
-    { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "matplotlib", specifier = ">=3.11.0" },
     { name = "numpy", specifier = ">=2.5.0" },
-    { name = "pandas", specifier = ">=3.0.3" },
-    { name = "pandas-stubs", specifier = "~=3.0.3" },
-    { name = "pytest", specifier = ">=9.1.1" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "tqdm", specifier = ">=4.68.3" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
+dev = [
+    { name = "ipykernel", specifier = ">=7.3.0" },
+    { name = "ipywidgets", specifier = ">=8.1.8" },
+    { name = "pandas", specifier = ">=3.0.3" },
+    { name = "pandas-stubs", specifier = "~=3.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
+]
 
 [[package]]
 name = "cycler"

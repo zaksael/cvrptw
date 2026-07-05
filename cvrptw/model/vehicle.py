@@ -31,11 +31,13 @@ class Vehicle:
         if self.left_capacity < c.demand:
             return False
         travel_time = self.dist_matrix[self.route.customers[-1].cust_id][c.cust_id]
-        if self._departure_time + travel_time > c.due_date:
+        t = self._departure_time + travel_time
+        if t > c.due_date:
             return False
+        arrival = t if t >= c.ready_time else float(c.ready_time)
         depot = self._depot
         time_to_depot = self.dist_matrix[c.cust_id][depot.cust_id]
-        return self._departure_time + travel_time + c.service_time + time_to_depot <= depot.due_date
+        return arrival + c.service_time + time_to_depot <= depot.due_date
 
     def try_visit(self, c: Customer) -> bool:
         if self.left_capacity < c.demand:
@@ -46,10 +48,10 @@ class Vehicle:
         t = self._departure_time + d
         if t > c.due_date:
             return False
-        depot = self._depot
-        if t + c.service_time + dm[c.cust_id][depot.cust_id] > depot.due_date:
-            return False
         arrival = t if t >= c.ready_time else float(c.ready_time)
+        depot = self._depot
+        if arrival + c.service_time + dm[c.cust_id][depot.cust_id] > depot.due_date:
+            return False
         self.left_capacity -= c.demand
         route.leg_distances.append(d)
         route.time_points.append(arrival)

@@ -35,9 +35,11 @@ def check_route_from(suffix: list[Customer], src: Vehicle, prefix_end: int) -> t
             return False, src
         d = dm[last_id][c.cust_id]
         t = dep_time + d
-        if t > c.due_date or t + c.service_time + dm[c.cust_id][depot.cust_id] > depot.due_date:
+        if t > c.due_date:
             return False, src
         arrival = t if t >= c.ready_time else float(c.ready_time)
+        if arrival + c.service_time + dm[c.cust_id][depot.cust_id] > depot.due_date:
+            return False, src
         left_cap -= c.demand
         dep_time = arrival + c.service_time
         last_id = c.cust_id

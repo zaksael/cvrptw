@@ -34,6 +34,24 @@ def test_greedy_respects_vehicle_limit(c108):
     assert len(sol) <= c108.n_vehicles
 
 
+def test_greedy_routes_return_before_depot_closing_despite_waiting():
+    """Waiting at a late-ready customer must not let greedy break the depot
+    due date: arrival 10, wait to 90, service to 95, return 105 > 100."""
+    depot = Customer(0, 0, 0, 0, 0, 100, 0)
+    c = Customer(1, 10, 0, 1, 90, 95, 5)
+    customers = [depot, c]
+    inst = Instance(
+        n_vehicles=1,
+        capacity=10,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    sol = get_greedy_solution(inst)
+    for v in sol:
+        assert v.route.time_points[-1] <= depot.due_date
+
+
 def test_greedy_picks_nearest_when_ready_time_zero():
     """Greedy score was distance * ready_time * due_date.
 

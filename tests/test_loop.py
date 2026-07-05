@@ -42,6 +42,39 @@ def test_ils_stats_structure():
         prev_dist = s.distance
 
 
+def test_ils_improves_on_suboptimal_greedy():
+    """ILS must actually find and record improvements when greedy is suboptimal.
+
+    Nearest-neighbor trap: from A(10,0) greedy detours to C(10.5,5) (distance
+    ~5.02) before B(20,0), giving depot-A-C-B-depot ~= 45.76, while
+    depot-A-B-C-depot ~= 42.37 is better. n_vehicles=1 disables perturbation
+    (inter-route relocate needs two routes), so the gain must come from local
+    search and be recorded as an improved iteration. verbose=True exercises
+    the progress-bar/new-best reporting path.
+    """
+    random.seed(42)
+    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
+    a = Customer(1, 10, 0, 1, 0, 1000, 0)
+    b = Customer(2, 20, 0, 1, 0, 1000, 0)
+    c = Customer(3, 10.5, 5, 1, 0, 1000, 0)
+    customers = [depot, a, b, c]
+    inst = Instance(
+        n_vehicles=1,
+        capacity=10,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+    greedy = get_greedy_solution(inst)
+    assert [cust.cust_id for cust in greedy.vehicles[0].route.customers] == [0, 1, 3, 2, 0]
+
+    _, best, stats = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2,
+                         verbose=True)
+
+    assert best.distance < greedy.distance - 1e-3
+    assert any(s.improved for s in stats)
+    assert min(s.distance for s in stats) < greedy.distance - 1e-3
+
+
 def test_ils_preserves_all_customers():
     """ILS must not silently drop any customers across perturbation and local search."""
     random.seed(42)

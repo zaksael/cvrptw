@@ -13,7 +13,7 @@ def intra_relocate(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution
                     continue
                 budget.tick()
                 lo = min(i, j)
-                suffix = v.route.customers[lo:][:]
+                suffix = v.route.customers[lo:]
                 li, lj = i - lo, j - lo
                 c = suffix[li]
                 del suffix[li]
@@ -60,7 +60,7 @@ def intra_or_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, 
                     for seg_variant in (seg, seg[::-1]):
                         budget.tick()
                         lo = min(i, j)
-                        suffix = v.route.customers[lo:][:]
+                        suffix = v.route.customers[lo:]
                         li, lj = i - lo, j - lo
                         del suffix[li:li + seg_len]
                         suffix[lj:lj] = seg_variant

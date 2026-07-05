@@ -1,11 +1,10 @@
 import time
 from dataclasses import dataclass, fields
 
-import numpy as np
 from tqdm.auto import tqdm
 
-from .model import Customer, Instance, Solution, Vehicle
-from .search import local_search, perturbation
+from ..model import Solution
+from ..search import local_search, perturbation
 
 
 @dataclass
@@ -41,37 +40,6 @@ def summarize_operator_stats(stats: ILSStats) -> dict[str, float]:
     """Sum every `*_improvements`/`*_gain` field on IterationStats across all iterations."""
     keys = [f.name for f in fields(IterationStats) if f.name.endswith(('_improvements', '_gain'))]
     return {k: sum(getattr(s, k) for s in stats) for k in keys}
-
-
-def run_vehicle(candidates: list[Customer], instance: Instance) -> Vehicle:
-    def most_suitable(current, candidates):
-        values = [instance.distances[current.cust_id][c.cust_id] * (c.ready_time + 1) * c.due_date
-                  for c in candidates]
-        return candidates[np.argmin(values)]
-
-    v = Vehicle(instance.capacity, instance.depot, instance.distances)
-    remaining = candidates[:]
-    while remaining:
-        feasible = [c for c in remaining if v.can_visit(c)]
-        if not feasible:
-            break
-        candidate = most_suitable(v.route.customers[-1], feasible)
-        remaining.remove(candidate)
-        v.visit(candidate)
-    v.visit(v.depot)
-    return v
-
-
-def get_greedy_solution(instance: Instance) -> Solution:
-    vehicles = []
-    candidates = instance.customers[1:]
-    for _ in range(instance.n_vehicles):
-        if not candidates:
-            break
-        v = run_vehicle(candidates, instance)
-        vehicles.append(v)
-        candidates = [c for c in candidates if c not in v.route.customers]
-    return Solution(vehicles)
 
 
 def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, int]:

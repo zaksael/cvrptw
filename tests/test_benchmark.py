@@ -46,6 +46,17 @@ def test_run_instance_writes_results(tmp_path):
     assert png_path.exists() and png_path.stat().st_size > 0
 
 
+def test_run_instance_creates_missing_results_dir(tmp_path):
+    path = tmp_path / 'inst.txt'
+    _write_instance(path, n_vehicles=2, capacity=10, customers=_TINY_CUSTOMERS)
+    results_dir = tmp_path / 'out' / 'nested'
+
+    run_instance(path, results_dir=results_dir, verbose=False)
+
+    assert (results_dir / 'inst.sol').exists()
+    assert (results_dir / 'inst.png').exists()
+
+
 def test_run_instance_without_results_dir(tmp_path):
     path = tmp_path / 'inst.txt'
     _write_instance(path, n_vehicles=2, capacity=10, customers=_TINY_CUSTOMERS)

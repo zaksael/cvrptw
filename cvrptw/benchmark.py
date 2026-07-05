@@ -56,6 +56,7 @@ def run_instance(
 
     if results_dir is not None:
         results_dir = Path(results_dir)
+        results_dir.mkdir(parents=True, exist_ok=True)
         save_solution(results_dir / path.with_suffix('.sol').name, sol)
         draw_solution(
             sol,

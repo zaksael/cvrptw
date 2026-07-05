@@ -22,6 +22,3 @@ class Route:
 
     def length(self) -> int:
         return len(self.customers)
-
-    def __repr__(self) -> str:
-        return str([c.cust_id for c in self.customers])

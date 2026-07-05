@@ -77,14 +77,3 @@ class Vehicle:
 
     def distance(self) -> float:
         return self.route.distance
-
-    def print_info(self) -> None:
-        for c, time, dist in zip(self.route.customers, self.route.time_points, self.route.leg_distances):
-            print(f"{c.cust_id:3} demand={c.demand:2} dist={dist:6.3f} "
-                  f"time={time:7.2f} tw=({c.ready_time:3},{c.due_date:4}) "
-                  f"service_time={c.service_time:2} ->")
-        print(f"Final time = {self.total_time:5.3f}, distance = {self.distance():6.2f}, "
-              f"length={self.length():2}, left_capacity = {self.left_capacity}")
-
-    def __repr__(self) -> str:
-        return str([c.cust_id for c in self.route.customers])

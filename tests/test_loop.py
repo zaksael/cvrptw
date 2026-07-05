@@ -95,24 +95,33 @@ def test_ils_preserves_all_customers():
     assert not final.missing_customers(inst)
 
 
-def test_ils_restart_from_best_preserves_customers():
-    """The restart_from_best acceptance variant must also never drop customers."""
+def test_ils_restart_from_best_survives_failed_iterations():
+    """restart_from_best must reset current_sol on every non-improving iteration.
+
+    Greedy is already optimal here ({c1,c2} + {c3} = 60; any other split is
+    worse), and c3's vehicle has 10 capacity slack, so perturbation always
+    finds a (worsening) relocate and local search at best restores 60 —
+    every iteration is a failed one that exercises the restart path, until
+    the 20-failed-iterations stop fires.
+    """
     random.seed(42)
     depot = Customer(0,  0, 0,  0, 0, 1000, 0)
     c1    = Customer(1, 10, 0, 10, 0,  800, 5)
     c2    = Customer(2, 20, 0, 10, 0,  800, 5)
     c3    = Customer(3,  0,10, 10, 0,  800, 5)
-    c4    = Customer(4,  0,20, 10, 0,  800, 5)
-    customers = [depot, c1, c2, c3, c4]
+    customers = [depot, c1, c2, c3]
     inst = Instance(
-        n_vehicles=4,
+        n_vehicles=3,
         capacity=20,
         customers=customers,
         distances=calculate_distances(customers),
     )
     greedy = get_greedy_solution(inst)
-    _, final, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2,
-                      restart_from_best=True)
+    _, final, stats = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=5,
+                          restart_from_best=True)
+
+    assert sum(1 for s in stats if not s.improved) >= 1
+    assert final.distance <= greedy.distance + 1e-9
     assert not final.missing_customers(inst)
 
 

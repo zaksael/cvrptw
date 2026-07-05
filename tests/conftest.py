@@ -4,6 +4,10 @@ from cvrptw.io import calculate_distances
 from cvrptw.model import Customer
 
 
+def ids(route):
+    return [c.cust_id for c in route]
+
+
 @pytest.fixture
 def tiny():
     """Depot + 3 collinear customers on the x-axis at x=10, 20, 30.

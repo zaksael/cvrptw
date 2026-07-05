@@ -1,11 +1,8 @@
 import numpy as np
 
+from conftest import ids
 from cvrptw.model import Customer
 from cvrptw.operators import check_route, check_route_from
-
-
-def ids(route):
-    return [c.cust_id for c in route]
 
 
 def test_check_route_valid(tiny):

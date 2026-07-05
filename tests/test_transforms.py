@@ -1,10 +1,7 @@
 from types import SimpleNamespace
 
+from conftest import ids
 from cvrptw.operators import check_route, check_route_from, cross, exchange, or_opt, relocate, segments_cross, two_opt
-
-
-def ids(route):
-    return [c.cust_id for c in route]
 
 
 def make_v(customers):

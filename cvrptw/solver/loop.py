@@ -51,7 +51,7 @@ def ils(
     verbose: bool = False,
     desc: str = 'ILS',
     restart_from_best: bool = False,
-    adaptive_perturbation: bool = False,
+    adaptive_perturbation: bool = True,
 ) -> tuple[int, Solution, ILSStats]:
     best_sol = current_sol = sol
     best_dist = sol.distance

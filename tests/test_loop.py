@@ -174,7 +174,8 @@ def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
     seen_moves.clear()
     random.seed(42)
     greedy = get_greedy_solution(inst)
-    ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=base, time_limit=5)
+    ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=base, time_limit=5,
+        adaptive_perturbation=False)
     assert set(seen_moves) == {base}
 
 

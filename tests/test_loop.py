@@ -127,6 +127,57 @@ def test_ils_restart_from_best_survives_failed_iterations():
     assert not final.missing_customers(inst)
 
 
+def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
+    """adaptive_perturbation must grow the kick with consecutive failed iterations.
+
+    Same forced-non-improving setup as the restart_from_best test above:
+    greedy is optimal and c3's vehicle has capacity slack, so every iteration
+    fails and n_failed_iters climbs to the stop threshold. The recorded
+    per-iteration strengths must start at the base, follow
+    min(base + n_failed_iters, 3 * base), and stay constant with the flag off.
+    """
+    import cvrptw.solver.loop as loop_mod
+
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    real_perturbation = loop_mod.perturbation
+    seen_moves: list[int] = []
+
+    def recording_perturbation(sol, n_moves):
+        seen_moves.append(n_moves)
+        return real_perturbation(sol, n_moves=n_moves)
+
+    monkeypatch.setattr(loop_mod, 'perturbation', recording_perturbation)
+
+    base = 2
+    random.seed(42)
+    greedy = get_greedy_solution(inst)
+    ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=base, time_limit=5,
+        adaptive_perturbation=True)
+
+    assert seen_moves[0] == base
+    # every iteration fails, so strength must follow the capped escalation exactly
+    assert seen_moves == [min(base + failed, 3 * base) for failed in range(len(seen_moves))]
+    assert seen_moves[-1] == 3 * base
+
+    # control: with the flag off, the strength never moves
+    seen_moves.clear()
+    random.seed(42)
+    greedy = get_greedy_solution(inst)
+    ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=base, time_limit=5)
+    assert set(seen_moves) == {base}
+
+
 def _iteration_stats(improvements: dict[str, int] | None = None, gains: dict[str, float] | None = None) -> IterationStats:
     return IterationStats(
         distance=0.0, improved=False, ls_attempts=0,

@@ -51,6 +51,7 @@ def ils(
     verbose: bool = False,
     desc: str = 'ILS',
     restart_from_best: bool = False,
+    adaptive_perturbation: bool = False,
 ) -> tuple[int, Solution, ILSStats]:
     best_sol = current_sol = sol
     best_dist = sol.distance
@@ -65,8 +66,11 @@ def ils(
     try:
         while time.time() - start < time_limit and n_failed_iters < 20:
             made_iters += 1
+            moves = n_perturbation_moves
+            if adaptive_perturbation:
+                moves = min(n_perturbation_moves + n_failed_iters, 3 * n_perturbation_moves)
             t0 = time.time()
-            p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=n_perturbation_moves)
+            p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves)
             t1 = time.time()
             dist_before_ls = current_sol.distance
             ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)

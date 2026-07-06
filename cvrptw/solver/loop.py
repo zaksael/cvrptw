@@ -4,12 +4,13 @@ from dataclasses import dataclass
 from tqdm.auto import tqdm
 
 from ..model import Solution
-from ..search import OPERATOR_NAMES, local_search, perturbation
+from ..search import OPERATOR_NAMES, local_search, perturbation, try_eliminate_route
 
 
 @dataclass
 class IterationStats:
     distance: float
+    n_vehicles: int
     improved: bool
     ls_attempts: int
     improvements: dict[str, int]
@@ -52,7 +53,16 @@ def ils(
     desc: str = 'ILS',
     restart_from_best: bool = False,
     adaptive_perturbation: bool = True,
+    minimize_vehicles: bool = True,
 ) -> tuple[int, Solution, ILSStats]:
+    """Iterated local search.
+
+    minimize_vehicles=True (default) pursues the hierarchical Solomon
+    objective — fewer vehicles first, then distance: each iteration attempts
+    an all-or-nothing route elimination between perturbation and local
+    search, and best-so-far is compared lexicographically on
+    (vehicles, distance). False restores the plain distance-only objective.
+    """
     best_sol = current_sol = sol
     best_dist = sol.distance
     made_iters = 0
@@ -71,6 +81,9 @@ def ils(
                 moves = min(n_perturbation_moves + n_failed_iters, 3 * n_perturbation_moves)
             t0 = time.time()
             p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves)
+            e_changed = False
+            if minimize_vehicles:
+                e_changed, current_sol = try_eliminate_route(current_sol)
             t1 = time.time()
             dist_before_ls = current_sol.distance
             ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)
@@ -80,12 +93,14 @@ def ils(
                 pbar.update(min(t2, start + time_limit) - start - pbar.n)
                 pbar.set_postfix(best=f'{best_dist:.2f}', iter=made_iters, failed=n_failed_iters)
 
-            if not (p_changed or ls_changed):
+            if not (p_changed or e_changed or ls_changed):
                 break
 
             current_dist = current_sol.distance
             delta = best_dist - current_dist
             improved = delta > 1e-3
+            if minimize_vehicles and len(current_sol) != len(best_sol):
+                improved = len(current_sol) < len(best_sol)
             if improved:
                 best_sol = current_sol
                 best_dist = current_dist
@@ -99,6 +114,7 @@ def ils(
 
             stats.append(IterationStats(
                 distance=round(best_dist, 2),
+                n_vehicles=len(best_sol),
                 improved=improved,
                 ls_attempts=ls_stats.n_attempts,
                 improvements=ls_stats.improvements,

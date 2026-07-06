@@ -29,6 +29,7 @@ def test_ils_stats_structure():
 
     prev_elapsed = -1.0
     prev_dist = greedy.distance
+    prev_veh = len(greedy)
     for s in stats:
         # timing is non-negative and elapsed is non-decreasing
         assert s.elapsed_s >= 0
@@ -37,11 +38,15 @@ def test_ils_stats_structure():
         assert s.elapsed_s >= prev_elapsed
         # gains are non-negative
         assert all(g >= 0 for g in s.gains.values())
-        # improved flag is consistent with distance change
+        # improved flag is consistent with the hierarchical objective:
+        # fewer vehicles, or same vehicles and smaller distance
         if s.improved:
-            assert s.distance < prev_dist - 1e-4
+            assert s.n_vehicles < prev_veh or (
+                s.n_vehicles == prev_veh and s.distance < prev_dist - 1e-4
+            )
         prev_elapsed = s.elapsed_s
         prev_dist = s.distance
+        prev_veh = s.n_vehicles
 
 
 def test_ils_improves_on_suboptimal_greedy():
@@ -181,7 +186,7 @@ def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
 
 def _iteration_stats(improvements: dict[str, int] | None = None, gains: dict[str, float] | None = None) -> IterationStats:
     return IterationStats(
-        distance=0.0, improved=False, ls_attempts=0,
+        distance=0.0, n_vehicles=0, improved=False, ls_attempts=0,
         improvements=dict.fromkeys(OPERATOR_NAMES, 0) | (improvements or {}),
         gains=dict.fromkeys(OPERATOR_NAMES, 0.0) | (gains or {}),
         perturb_moves=0, elapsed_s=0.0, dist_before_ls=0.0, ls_time_s=0.0, perturb_time_s=0.0,

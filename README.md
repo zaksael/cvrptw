@@ -10,7 +10,7 @@ A heuristic solver for the **Capacitated Vehicle Routing Problem with Time Windo
 
 ## The problem
 
-Given a depot, a fleet of identical vehicles with limited capacity, and a set of customers — each with a demand, a service time, and a `[ready_time, due_date]` time window — find routes that visit every customer exactly once, respect capacity and all time windows (arriving early means waiting; every route must also make it back to the depot before its closing time), and minimize total travelled distance. Instances follow the classic [Solomon benchmark](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark/) format; ten of them ship in [`data/instances/`](data/instances/).
+Given a depot, a fleet of identical vehicles with limited capacity, and a set of customers — each with a demand, a service time, and a `[ready_time, due_date]` time window — find routes that visit every customer exactly once, respect capacity and all time windows (arriving early means waiting; every route must also make it back to the depot before its closing time), and minimize total travelled distance. Instances follow the classic [Solomon benchmark](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark/) format; the full 56-instance 100-customer set ships in [`data/instances/solomon/`](data/instances/solomon/).
 
 ## The algorithm
 
@@ -37,7 +37,7 @@ Solve a single instance:
 ```python
 from cvrptw.benchmark import run_instance
 
-result = run_instance('data/instances/C108.txt', results_dir='results')
+result = run_instance('data/instances/solomon/c108.txt', results_dir='results')
 print(result.distance, result.n_vehicles, result.improvement_pct)
 ```
 
@@ -47,17 +47,17 @@ Or drive the pieces yourself:
 from cvrptw.io import load_instance, save_solution
 from cvrptw.solver import get_greedy_solution, ils, ls_attempts_and_time_limit
 
-inst = load_instance('data/instances/C108.txt')
+inst = load_instance('data/instances/solomon/c108.txt')
 greedy = get_greedy_solution(inst)
 
 max_attempts, time_limit = ls_attempts_and_time_limit(inst.n_vehicles, len(inst.customers))
 n_iters, best, stats = ils(greedy, max_attempts, n_perturbation_moves=5,
                            time_limit=time_limit, verbose=True)
 
-save_solution('results/C108.sol', best)
+save_solution('results/c108.sol', best)
 ```
 
-The full benchmark — every instance in `data/instances/`, with progress bars, per-instance `.sol` files and route plots saved to `results/` — runs from the driver notebook:
+The full benchmark — every instance in `data/instances/solomon/`, with progress bars, per-instance `.sol` files and route plots saved to `results/` — runs from the driver notebook:
 
 ```bash
 uv run jupyter notebook notebooks/ILS.ipynb
@@ -80,6 +80,6 @@ tests/          one test file per source submodule
 
 ## File formats
 
-**Instances** (`data/instances/*.txt`) — Solomon format: line 5 holds `n_vehicles capacity`; each remaining line is `id x y demand ready_time due_date service_time`. Customer 0 is the depot.
+**Instances** (`data/instances/solomon/*.txt`) — Solomon format: line 5 holds `n_vehicles capacity`; each remaining line is `id x y demand ready_time due_date service_time`. Customer 0 is the depot.
 
 **Solutions** (`results/*.sol`) — one route per line as space-separated `customer_id arrival_time` pairs, starting and ending at the depot.

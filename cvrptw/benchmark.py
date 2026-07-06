@@ -90,7 +90,7 @@ def run_instance(
 
 
 def run_benchmark(
-    instances_dir: Path | str = _REPO_ROOT / 'data' / 'instances',
+    instances_dir: Path | str = _REPO_ROOT / 'data' / 'instances' / 'solomon',
     results_dir: Path | str | None = _REPO_ROOT / 'results',
     perturbation_moves: int = 5,
 ) -> list[BenchmarkResult]:

@@ -52,7 +52,7 @@ def test_format_table_sorts_rows_and_summarizes():
     assert lines[0].split() == ['instance', 'dist', 'bks', 'gap%', 'veh', 'bks_veh']
     assert lines[2].split() == ['c101', '828.94', '828.94', '+0.00', '10', '10']
     assert lines[3].split() == ['r112', '1080.35', '982.14', '+10.00', '10', '9']
-    assert lines[-1] == 'mean gap +5.00%, at/below BKS distance: 1/2 of 56 instances'
+    assert lines[-1] == 'mean gap +5.00%, at/below BKS distance: 1/2, at BKS vehicles: 1/2 of 56 instances'
 
 
 def test_format_table_empty():

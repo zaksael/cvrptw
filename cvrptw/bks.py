@@ -4,8 +4,9 @@ Values from SINTEF TOP (https://www.sintef.no/projectweb/top/vrptw/solomon-bench
 retrieved 2026-07-06. SINTEF reports the hierarchical objective — 1) minimize
 vehicles, 2) minimize total distance — with double-precision Euclidean
 distances rounded to two decimals, the same distance convention this solver
-uses. This solver minimizes distance only, so a comparison may legitimately
-beat the BKS distance by using more vehicles.
+uses. Since 2026-07-06 the solver pursues the same hierarchical objective by
+default (`ils(minimize_vehicles=True)`); with `minimize_vehicles=False` it
+minimizes distance only and may beat the BKS distance by using more vehicles.
 """
 
 from dataclasses import dataclass
@@ -126,9 +127,11 @@ def format_bks_table(rows: list[BKSComparison]) -> str:
     if rows:
         mean_gap = sum(r.gap_pct for r in rows) / len(rows)
         at_bks = sum(1 for r in rows if r.distance <= r.bks_distance + 1e-9)
+        at_bks_veh = sum(1 for r in rows if r.extra_vehicles <= 0)
         lines.append('-' * len(header))
         lines.append(
             f'mean gap {mean_gap:+.2f}%, at/below BKS distance: '
-            f'{at_bks}/{len(rows)} of {len(SOLOMON_100_BKS)} instances'
+            f'{at_bks}/{len(rows)}, at BKS vehicles: {at_bks_veh}/{len(rows)} '
+            f'of {len(SOLOMON_100_BKS)} instances'
         )
     return '\n'.join(lines)

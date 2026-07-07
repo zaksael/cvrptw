@@ -7,19 +7,18 @@ def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
     indices = shuffled_vehicle_indices(sol)
     for v1_idx in indices:
         v1 = sol.vehicles[v1_idx]
-        for v2_idx in indices:
-            if v1_idx == v2_idx:
+        for i in range(1, v1.length() - 1):
+            c = v1.route.customers[i]
+            if c.cust_id in moved_ids:
                 continue
-            v2 = sol.vehicles[v2_idx]
-            for i in range(1, v1.length() - 1):
-                c_id = v1.route.customers[i].cust_id
-                if c_id in moved_ids:
+            r1_suffix = v1.route.customers[i + 1:]
+            ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
+            if not ok1:
+                continue
+            for v2_idx in indices:
+                if v1_idx == v2_idx:
                     continue
-                r1_suffix = v1.route.customers[i + 1:]
-                ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
-                if not ok1:
-                    continue
-                c = v1.route.customers[i]
+                v2 = sol.vehicles[v2_idx]
                 for j in range(1, v2.length()):
                     r2_suffix = [c] + v2.route.customers[j:]
                     ok2, nv2 = check_route_from(r2_suffix, v2, j - 1)
@@ -27,7 +26,7 @@ def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
                         new_vehicles = sol.vehicles[:]
                         new_vehicles[v1_idx] = nv1
                         new_vehicles[v2_idx] = nv2
-                        moved_ids.add(c_id)
+                        moved_ids.add(c.cust_id)
                         return True, Solution(new_vehicles).without_empty_routes()
     return False, sol
 

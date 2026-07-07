@@ -11,19 +11,19 @@ def apply_or_opt(sol: Solution, budget: AttemptBudget, rng: random.Random = rand
     for idx1 in indices:
         v1 = sol.vehicles[idx1]
         n1 = v1.length()
-        for idx2 in indices:
-            if idx1 == idx2:
-                continue
-            v2 = sol.vehicles[idx2]
-            for seg_len in (2, 3):
-                for i in range(1, n1 - seg_len):
-                    budget.tick()
-                    seg = v1.route.customers[i:i + seg_len]
-                    r1_suffix = v1.route.customers[i + seg_len:]
-                    ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
-                    if not ok1:
+        for seg_len in (2, 3):
+            for i in range(1, n1 - seg_len):
+                budget.tick()
+                seg = v1.route.customers[i:i + seg_len]
+                r1_suffix = v1.route.customers[i + seg_len:]
+                ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
+                if not ok1:
+                    continue
+                seg_reversed = seg[::-1]
+                for idx2 in indices:
+                    if idx1 == idx2:
                         continue
-                    seg_reversed = seg[::-1]
+                    v2 = sol.vehicles[idx2]
                     for j in customer_indices(v2, with_last=True):
                         for seg_variant in (seg, seg_reversed):
                             budget.tick()
@@ -43,17 +43,17 @@ def apply_relocate(sol: Solution, budget: AttemptBudget, rng: random.Random = ra
     indices = shuffled_vehicle_indices(sol, rng)
     for idx1 in indices:
         v1 = sol.vehicles[idx1]
-        for idx2 in indices:
-            if idx1 == idx2:
+        for i in range(1, v1.length() - 1):
+            budget.tick()
+            c = v1.route.customers[i]
+            r1_suffix = v1.route.customers[i + 1:]
+            ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
+            if not ok1:
                 continue
-            v2 = sol.vehicles[idx2]
-            for i in range(1, v1.length() - 1):
-                budget.tick()
-                c = v1.route.customers[i]
-                r1_suffix = v1.route.customers[i + 1:]
-                ok1, nv1 = check_route_from(r1_suffix, v1, i - 1)
-                if not ok1:
+            for idx2 in indices:
+                if idx1 == idx2:
                     continue
+                v2 = sol.vehicles[idx2]
                 for j in range(1, v2.length()):
                     budget.tick()
                     r2_suffix = [c] + v2.route.customers[j:]

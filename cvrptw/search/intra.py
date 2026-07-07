@@ -1,11 +1,13 @@
+import random
+
 from ..model import Solution
 from ..operators import check_route_from, segments_cross
 from ._util import shuffled_vehicle_indices
 from .budget import AttemptBudget
 
 
-def intra_relocate(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    for v_i in shuffled_vehicle_indices(sol):
+def intra_relocate(sol: Solution, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    for v_i in shuffled_vehicle_indices(sol, rng):
         v = sol.vehicles[v_i]
         for i in range(1, v.length() - 1):
             for j in range(1, v.length() - 1):
@@ -27,8 +29,8 @@ def intra_relocate(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution
     return False, sol, 0.0
 
 
-def intra_two_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    for v_i in shuffled_vehicle_indices(sol):
+def intra_two_opt(sol: Solution, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    for v_i in shuffled_vehicle_indices(sol, rng):
         v = sol.vehicles[v_i]
         custs = v.route.customers
         n = len(custs)
@@ -47,8 +49,8 @@ def intra_two_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution,
     return False, sol, 0.0
 
 
-def intra_or_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    for v_i in shuffled_vehicle_indices(sol):
+def intra_or_opt(sol: Solution, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    for v_i in shuffled_vehicle_indices(sol, rng):
         v = sol.vehicles[v_i]
         n = v.length()
         for seg_len in (2, 3):

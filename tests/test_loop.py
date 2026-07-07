@@ -158,9 +158,9 @@ def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
     real_perturbation = loop_mod.perturbation
     seen_moves: list[int] = []
 
-    def recording_perturbation(sol, n_moves):
+    def recording_perturbation(sol, n_moves, rng=random):
         seen_moves.append(n_moves)
-        return real_perturbation(sol, n_moves=n_moves)
+        return real_perturbation(sol, n_moves=n_moves, rng=rng)
 
     monkeypatch.setattr(loop_mod, 'perturbation', recording_perturbation)
 
@@ -217,8 +217,8 @@ def test_ils_throttles_elimination_after_consecutive_failures(monkeypatch):
     real_eliminate = loop_mod.try_eliminate_route
     calls: list[bool] = []
 
-    def recording_eliminate(sol):
-        ok, out = real_eliminate(sol)
+    def recording_eliminate(sol, rng=random):
+        ok, out = real_eliminate(sol, rng)
         calls.append(ok)
         return ok, out
 
@@ -245,11 +245,11 @@ def test_ils_throttles_elimination_after_consecutive_failures(monkeypatch):
     # to the real (always-failing) function — the pattern restarts after it
     calls.clear()
 
-    def succeed_once_eliminate(sol):
+    def succeed_once_eliminate(sol, rng=random):
         if not calls:
             calls.append(True)
             return True, sol
-        ok, out = real_eliminate(sol)
+        ok, out = real_eliminate(sol, rng)
         calls.append(ok)
         return ok, out
 
@@ -260,6 +260,37 @@ def test_ils_throttles_elimination_after_consecutive_failures(monkeypatch):
                            max_elim_failures=limit)
     assert made_iters > 1 + 2 * limit
     assert calls == [True] + [False] * _expected_elim_attempts(made_iters - 1, limit)
+
+
+def test_ils_explicit_rng_is_reproducible_and_isolated():
+    """ils(rng=random.Random(seed)) must give identical trajectories regardless
+    of global random state, and must leave the global state untouched.
+
+    Same capacity-slack setup as the tests above so perturbation stays alive —
+    the run actually consumes randomness every iteration.
+    """
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    def run(global_seed):
+        random.seed(global_seed)
+        greedy = get_greedy_solution(inst)
+        state_before = random.getstate()
+        n_iters, best, stats = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2,
+                                   time_limit=5, rng=random.Random(7))
+        assert random.getstate() == state_before  # global stream untouched
+        return n_iters, best.distance, [(s.distance, s.perturb_moves) for s in stats]
+
+    assert run(global_seed=1) == run(global_seed=2)
 
 
 def _iteration_stats(improvements: dict[str, int] | None = None, gains: dict[str, float] | None = None) -> IterationStats:

@@ -1,11 +1,13 @@
+import random
+
 from ..model import Solution
 from ..operators import check_route_from, customer_indices
 from ._util import shuffled_vehicle_indices
 from .budget import AttemptBudget
 
 
-def apply_or_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    indices = shuffled_vehicle_indices(sol)
+def apply_or_opt(sol: Solution, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    indices = shuffled_vehicle_indices(sol, rng)
     for idx1 in indices:
         v1 = sol.vehicles[idx1]
         n1 = v1.length()
@@ -37,8 +39,8 @@ def apply_or_opt(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, 
     return False, sol, 0.0
 
 
-def apply_relocate(sol: Solution, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    indices = shuffled_vehicle_indices(sol)
+def apply_relocate(sol: Solution, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    indices = shuffled_vehicle_indices(sol, rng)
     for idx1 in indices:
         v1 = sol.vehicles[idx1]
         for idx2 in indices:
@@ -75,8 +77,8 @@ def exchange_suffix(v1, i, v2, j):
             [v1.route.customers[i]] + v2.route.customers[j + 1:])
 
 
-def apply_operator(sol: Solution, operator, with_last: bool, budget: AttemptBudget) -> tuple[bool, Solution, float]:
-    indices = shuffled_vehicle_indices(sol)
+def apply_operator(sol: Solution, operator, with_last: bool, budget: AttemptBudget, rng: random.Random = random) -> tuple[bool, Solution, float]:
+    indices = shuffled_vehicle_indices(sol, rng)
     for idx1 in indices:
         v1 = sol.vehicles[idx1]
         for idx2 in indices:

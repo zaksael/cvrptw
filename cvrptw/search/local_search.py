@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from functools import partial
 
@@ -28,7 +29,8 @@ class LSStats:
     gains: dict[str, float]
 
 
-def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None) -> tuple[bool, Solution, LSStats]:
+def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None,
+                 rng: random.Random = random) -> tuple[bool, Solution, LSStats]:
     budget = AttemptBudget(max_attempts=max_attempts, deadline=deadline)
 
     result = sol
@@ -40,7 +42,7 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
         while improved:
             improved = False
             for name, op in _CASCADE:
-                done, result, gain = op(result, budget=budget)
+                done, result, gain = op(result, budget=budget, rng=rng)
                 if done:
                     changes_made = True
                     improvements[name] += 1

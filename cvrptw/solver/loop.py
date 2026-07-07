@@ -1,3 +1,4 @@
+import random
 import time
 from dataclasses import dataclass
 
@@ -55,8 +56,13 @@ def ils(
     adaptive_perturbation: bool = True,
     minimize_vehicles: bool = True,
     max_elim_failures: int | None = 5,
+    rng: random.Random = random,
 ) -> tuple[int, Solution, ILSStats]:
     """Iterated local search.
+
+    rng defaults to the global random module; pass a seeded random.Random
+    for a run whose trajectory is isolated from (and does not disturb)
+    global random state.
 
     minimize_vehicles=True (default) pursues the hierarchical Solomon
     objective — fewer vehicles first, then distance: each iteration attempts
@@ -87,16 +93,16 @@ def ils(
             if adaptive_perturbation:
                 moves = min(n_perturbation_moves + n_failed_iters, 3 * n_perturbation_moves)
             t0 = time.time()
-            p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves)
+            p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves, rng=rng)
             e_changed = False
             if minimize_vehicles:
                 if (max_elim_failures is None or n_elim_failures < max_elim_failures
                         or n_elim_failures % max_elim_failures == 0):
-                    e_changed, current_sol = try_eliminate_route(current_sol)
+                    e_changed, current_sol = try_eliminate_route(current_sol, rng)
                 n_elim_failures = 0 if e_changed else n_elim_failures + 1
             t1 = time.time()
             dist_before_ls = current_sol.distance
-            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)
+            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng)
             t2 = time.time()
 
             if pbar is not None:

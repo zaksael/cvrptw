@@ -1,10 +1,12 @@
+import random
+
 from ..model import Solution
 from ..operators import check_route_from
 from ._util import shuffled_vehicle_indices
 
 
-def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
-    indices = shuffled_vehicle_indices(sol)
+def inter_relocate(sol: Solution, moved_ids: set[int], rng: random.Random = random) -> tuple[bool, Solution]:
+    indices = shuffled_vehicle_indices(sol, rng)
     for v1_idx in indices:
         v1 = sol.vehicles[v1_idx]
         for i in range(1, v1.length() - 1):
@@ -31,13 +33,13 @@ def inter_relocate(sol: Solution, moved_ids: set[int]) -> tuple[bool, Solution]:
     return False, sol
 
 
-def perturbation(solution: Solution, n_moves: int = 5) -> tuple[bool, Solution, int]:
+def perturbation(solution: Solution, n_moves: int = 5, rng: random.Random = random) -> tuple[bool, Solution, int]:
     moved_ids: set[int] = set()
     result = solution
     changes_made = False
     actual_moves = 0
     for _ in range(n_moves):
-        done, result = inter_relocate(result, moved_ids)
+        done, result = inter_relocate(result, moved_ids, rng)
         if not done:
             break
         changes_made = True

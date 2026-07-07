@@ -1,9 +1,11 @@
+import random
+
 from ..model import Solution
 from ..operators import check_route_from
 from ._util import shuffled_vehicle_indices
 
 
-def try_eliminate_route(sol: Solution) -> tuple[bool, Solution]:
+def try_eliminate_route(sol: Solution, rng: random.Random = random) -> tuple[bool, Solution]:
     """All-or-nothing route elimination for the hierarchical objective.
 
     Tries source routes smallest-first; every customer of the source must be
@@ -19,7 +21,7 @@ def try_eliminate_route(sol: Solution) -> tuple[bool, Solution]:
         placed_all = True
         for c in sol.vehicles[src_idx].route.customers[1:-1]:
             placed = False
-            for t_idx in shuffled_vehicle_indices(sol):
+            for t_idx in shuffled_vehicle_indices(sol, rng):
                 if t_idx == src_idx:
                     continue
                 v2 = vehicles[t_idx]

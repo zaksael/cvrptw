@@ -5,12 +5,12 @@ from pathlib import Path
 
 from tqdm.auto import tqdm
 
-_REPO_ROOT = Path(__file__).parent.parent
-
 from .io import load_instance, save_solution
 from .model import Solution
 from .solver import ILSStats, get_greedy_solution, ils, ls_attempts_and_time_limit, summarize_operator_stats
 from .viz import draw_solution
+
+_REPO_ROOT = Path(__file__).parent.parent
 
 
 @dataclass

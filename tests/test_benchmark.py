@@ -82,6 +82,31 @@ def test_run_instance_warns_when_customers_left_unassigned(tmp_path):
         run_instance(path, results_dir=None, verbose=False)
 
 
+def test_run_instance_forwards_ils_kwargs(tmp_path, monkeypatch):
+    """Extra kwargs must reach ils(); size-based budget defaults must still
+    apply when not overridden, and overrides must win."""
+    import cvrptw.benchmark as benchmark_mod
+
+    path = tmp_path / 'inst.txt'
+    _write_instance(path, n_vehicles=2, capacity=10, customers=_TINY_CUSTOMERS)
+
+    real_ils = benchmark_mod.ils
+    seen: dict = {}
+
+    def recording_ils(sol, **kwargs):
+        seen.update(kwargs)
+        return real_ils(sol, **kwargs)
+
+    monkeypatch.setattr(benchmark_mod, 'ils', recording_ils)
+
+    run_instance(path, results_dir=None, verbose=False,
+                 time_limit=1, minimize_vehicles=False)
+
+    assert seen['time_limit'] == 1              # explicit override wins
+    assert seen['minimize_vehicles'] is False   # arbitrary ils option forwarded
+    assert seen['max_ls_attempts'] == 250_000   # size-based default still applied
+
+
 def test_run_benchmark_iterates_directory_in_sorted_order(tmp_path):
     _write_instance(tmp_path / 'inst_a.txt', n_vehicles=2, capacity=10, customers=_TINY_CUSTOMERS)
     _write_instance(tmp_path / 'inst_b.txt', n_vehicles=2, capacity=10, customers=_TINY_CUSTOMERS)

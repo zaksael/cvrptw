@@ -35,11 +35,18 @@ def run_instance(
     results_dir: Path | str | None = None,
     perturbation_moves: int = 5,
     verbose: bool = True,
+    **ils_kwargs,
 ) -> BenchmarkResult:
+    """Extra keyword arguments are forwarded to ils() — e.g. time_limit,
+    max_ls_attempts (defaulted from ls_attempts_and_time_limit when absent),
+    minimize_vehicles, max_elim_failures."""
     path = Path(path)
 
     inst = load_instance(path)
-    ls_max_moves, time_limit = ls_attempts_and_time_limit(inst.n_vehicles, len(inst.customers))
+    default_attempts, default_time = ls_attempts_and_time_limit(inst.n_vehicles, len(inst.customers))
+    ils_kwargs.setdefault('max_ls_attempts', default_attempts)
+    ils_kwargs.setdefault('time_limit', default_time)
+    time_limit = ils_kwargs['time_limit']
 
     start = time.time()
     init_sol = get_greedy_solution(inst)
@@ -53,7 +60,8 @@ def run_instance(
     init_distance = init_sol.distance
     init_n_vehicles = len(init_sol)
 
-    n_iters, sol, stats = ils(init_sol, ls_max_moves, perturbation_moves, time_limit, verbose=verbose, desc=path.name)
+    n_iters, sol, stats = ils(init_sol, n_perturbation_moves=perturbation_moves,
+                              verbose=verbose, desc=path.name, **ils_kwargs)
     elapsed = time.time() - start
 
     improvement_pct = round((init_distance - sol.distance) / init_distance * 100, 2) if init_distance else 0.0
@@ -93,7 +101,9 @@ def run_benchmark(
     instances_dir: Path | str = _REPO_ROOT / 'data' / 'instances' / 'solomon',
     results_dir: Path | str | None = _REPO_ROOT / 'results',
     perturbation_moves: int = 5,
+    **ils_kwargs,
 ) -> list[BenchmarkResult]:
+    """Extra keyword arguments are forwarded to ils() via run_instance."""
     paths = sorted(
         p for p in Path(instances_dir).iterdir()
         if p.is_file() and p.suffix.lower() == '.txt'
@@ -101,5 +111,5 @@ def run_benchmark(
     results = []
     with tqdm(paths, desc='ILS', unit='instance') as pbar:
         for p in pbar:
-            results.append(run_instance(p, results_dir, perturbation_moves))
+            results.append(run_instance(p, results_dir, perturbation_moves, **ils_kwargs))
     return results

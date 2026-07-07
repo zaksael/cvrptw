@@ -54,6 +54,7 @@ def ils(
     restart_from_best: bool = False,
     adaptive_perturbation: bool = True,
     minimize_vehicles: bool = True,
+    max_elim_failures: int | None = 5,
 ) -> tuple[int, Solution, ILSStats]:
     """Iterated local search.
 
@@ -62,11 +63,17 @@ def ils(
     an all-or-nothing route elimination between perturbation and local
     search, and best-so-far is compared lexicographically on
     (vehicles, distance). False restores the plain distance-only objective.
+    After max_elim_failures consecutive non-eliminating iterations the step
+    backs off to every max_elim_failures-th iteration (on fleet-tight
+    instances it mostly burns budget and churns the RNG, but late successes
+    after long failure streaks do happen, so it is never fully disabled);
+    a success resets the back-off. None never throttles.
     """
     best_sol = current_sol = sol
     best_dist = sol.distance
     made_iters = 0
     n_failed_iters = 0
+    n_elim_failures = 0
     stats: ILSStats = []
 
     start = time.time()
@@ -83,7 +90,10 @@ def ils(
             p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves)
             e_changed = False
             if minimize_vehicles:
-                e_changed, current_sol = try_eliminate_route(current_sol)
+                if (max_elim_failures is None or n_elim_failures < max_elim_failures
+                        or n_elim_failures % max_elim_failures == 0):
+                    e_changed, current_sol = try_eliminate_route(current_sol)
+                n_elim_failures = 0 if e_changed else n_elim_failures + 1
             t1 = time.time()
             dist_before_ls = current_sol.distance
             ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit)

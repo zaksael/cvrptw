@@ -184,6 +184,84 @@ def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
     assert set(seen_moves) == {base}
 
 
+def _expected_elim_attempts(n_iters: int, limit: int) -> int:
+    """Attempt count when every elimination fails: the counter n climbs one
+    per iteration, and an attempt fires iff n < limit or n % limit == 0."""
+    return sum(1 for n in range(n_iters) if n < limit or n % limit == 0)
+
+
+def test_ils_throttles_elimination_after_consecutive_failures(monkeypatch):
+    """After max_elim_failures consecutive non-eliminating iterations,
+    try_eliminate_route must back off to every max_elim_failures-th
+    iteration; a success must reset the back-off; None must never throttle.
+
+    Same forced-non-improving setup as the adaptive_perturbation test above:
+    {c1,c2} is capacity-full and {c1,c2,c3} would exceed capacity, so
+    elimination always fails, while c3's slack keeps perturbation alive until
+    the 20-failed-iterations stop — plenty of iterations past the cap.
+    """
+    import cvrptw.solver.loop as loop_mod
+
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    real_eliminate = loop_mod.try_eliminate_route
+    calls: list[bool] = []
+
+    def recording_eliminate(sol):
+        ok, out = real_eliminate(sol)
+        calls.append(ok)
+        return ok, out
+
+    monkeypatch.setattr(loop_mod, 'try_eliminate_route', recording_eliminate)
+
+    limit = 3
+    random.seed(42)
+    greedy = get_greedy_solution(inst)
+    made_iters, _, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=5,
+                           max_elim_failures=limit)
+    assert made_iters > 2 * limit  # long enough that the back-off actually skips
+    assert calls == [False] * _expected_elim_attempts(made_iters, limit)
+    assert len(calls) < made_iters
+
+    # None never throttles: one call per iteration
+    calls.clear()
+    random.seed(42)
+    greedy = get_greedy_solution(inst)
+    made_iters, _, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=5,
+                           max_elim_failures=None)
+    assert len(calls) == made_iters > limit
+
+    # a success resets the back-off: fake one on the first call, then delegate
+    # to the real (always-failing) function — the pattern restarts after it
+    calls.clear()
+
+    def succeed_once_eliminate(sol):
+        if not calls:
+            calls.append(True)
+            return True, sol
+        ok, out = real_eliminate(sol)
+        calls.append(ok)
+        return ok, out
+
+    monkeypatch.setattr(loop_mod, 'try_eliminate_route', succeed_once_eliminate)
+    random.seed(42)
+    greedy = get_greedy_solution(inst)
+    made_iters, _, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=5,
+                           max_elim_failures=limit)
+    assert made_iters > 1 + 2 * limit
+    assert calls == [True] + [False] * _expected_elim_attempts(made_iters - 1, limit)
+
+
 def _iteration_stats(improvements: dict[str, int] | None = None, gains: dict[str, float] | None = None) -> IterationStats:
     return IterationStats(
         distance=0.0, n_vehicles=0, improved=False, ls_attempts=0,

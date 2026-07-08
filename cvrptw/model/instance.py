@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-import numpy as np
-
 from .customer import Customer
 
 
@@ -10,7 +8,9 @@ class Instance:
     n_vehicles: int
     capacity: int
     customers: list[Customer]
-    distances: np.ndarray
+    # nested lists, not an ndarray: scalar lookups dm[a][b] dominate the hot
+    # path and plain-list indexing is several times faster than numpy's
+    distances: list[list[float]]
 
     @property
     def depot(self) -> Customer:

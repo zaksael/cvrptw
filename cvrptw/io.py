@@ -22,10 +22,12 @@ def load_instance(file_path: str | Path) -> Instance:
     return Instance(n_vehicles, capacity, customers, distances=calculate_distances(customers))
 
 
-def calculate_distances(customers: list[Customer]) -> np.ndarray:
+def calculate_distances(customers: list[Customer]) -> list[list[float]]:
     coords = np.array([(c.x, c.y) for c in customers], dtype=float)
     diffs = coords[:, None, :] - coords[None, :, :]
-    return np.hypot(diffs[..., 0], diffs[..., 1])
+    # .tolist(): scalar dm[a][b] lookups in the search hot path are several
+    # times faster on nested lists than on an ndarray
+    return np.hypot(diffs[..., 0], diffs[..., 1]).tolist()
 
 
 def save_solution(file_path: str | Path, sol: Solution) -> None:

@@ -1,9 +1,7 @@
-import numpy as np
-
 from ..model import Customer, Route, Vehicle
 
 
-def check_route(route: list[Customer], capacity: int, distances: np.ndarray) -> tuple[bool, Vehicle]:
+def check_route(route: list[Customer], capacity: int, distances: list[list[float]]) -> tuple[bool, Vehicle]:
     v = Vehicle(capacity, route[0], distances)
     for c in route[1:]:
         if not v.try_visit(c):

@@ -1,11 +1,9 @@
-import numpy as np
-
 from .customer import Customer
 from .route import Route
 
 
 class Vehicle:
-    def __init__(self, capacity: int, depot: Customer, distances: np.ndarray) -> None:
+    def __init__(self, capacity: int, depot: Customer, distances: list[list[float]]) -> None:
         self.initial_capacity = capacity
         self.left_capacity = capacity
         self.dist_matrix = distances

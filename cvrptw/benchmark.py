@@ -48,7 +48,7 @@ def run_instance(
     ils_kwargs.setdefault('time_limit', default_time)
     time_limit = ils_kwargs['time_limit']
 
-    start = time.time()
+    start = time.perf_counter()
     init_sol = get_greedy_solution(inst)
     missing = init_sol.missing_customers(inst)
     if missing:
@@ -62,7 +62,7 @@ def run_instance(
 
     n_iters, sol, stats = ils(init_sol, n_perturbation_moves=perturbation_moves,
                               verbose=verbose, desc=path.name, **ils_kwargs)
-    elapsed = time.time() - start
+    elapsed = time.perf_counter() - start
 
     improvement_pct = round((init_distance - sol.distance) / init_distance * 100, 2) if init_distance else 0.0
     tqdm.write(

@@ -82,17 +82,17 @@ def ils(
     n_elim_failures = 0
     stats: ILSStats = []
 
-    start = time.time()
+    start = time.perf_counter()
     pbar = tqdm(total=time_limit, desc=desc, unit='s', leave=False, bar_format=_ILS_BAR_FORMAT) if verbose else None
     if verbose:
         tqdm.write(f'Initial : distance = {best_dist:.2f}, vehicles = {len(best_sol)}')
     try:
-        while time.time() - start < time_limit and n_failed_iters < 20:
+        while time.perf_counter() - start < time_limit and n_failed_iters < 20:
             made_iters += 1
             moves = n_perturbation_moves
             if adaptive_perturbation:
                 moves = min(n_perturbation_moves + n_failed_iters, 3 * n_perturbation_moves)
-            t0 = time.time()
+            t0 = time.perf_counter()
             p_changed, current_sol, actual_p_moves = perturbation(current_sol, n_moves=moves, rng=rng)
             e_changed = False
             if minimize_vehicles:
@@ -100,10 +100,10 @@ def ils(
                         or n_elim_failures % max_elim_failures == 0):
                     e_changed, current_sol = try_eliminate_route(current_sol, rng)
                 n_elim_failures = 0 if e_changed else n_elim_failures + 1
-            t1 = time.time()
+            t1 = time.perf_counter()
             dist_before_ls = current_sol.distance
             ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng)
-            t2 = time.time()
+            t2 = time.perf_counter()
 
             if pbar is not None:
                 pbar.update(min(t2, start + time_limit) - start - pbar.n)

@@ -105,6 +105,6 @@ def test_local_search_stops_at_deadline():
     v.visit(depot)
 
     sol = Solution([v])
-    expired = time.time() - 1.0
+    expired = time.perf_counter() - 1.0
     _, _, stats = local_search(sol, max_attempts=1_000_000, deadline=expired)
     assert stats.n_attempts == 1

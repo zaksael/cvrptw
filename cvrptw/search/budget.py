@@ -14,7 +14,7 @@ class AttemptBudget:
 
     def tick(self) -> None:
         self.n_attempts += 1
-        if self.n_attempts == self.max_attempts:
+        if self.n_attempts >= self.max_attempts:
             raise LimitReached
         if self.deadline is not None and time.time() >= self.deadline:
             raise LimitReached

@@ -21,6 +21,12 @@ def test_attempt_budget_raises_at_max_attempts():
     assert budget.n_attempts == 3
 
 
+def test_attempt_budget_zero_max_attempts_raises_immediately():
+    budget = AttemptBudget(max_attempts=0)
+    with pytest.raises(LimitReached):
+        budget.tick()
+
+
 def test_attempt_budget_raises_at_deadline():
     budget = AttemptBudget(max_attempts=1_000_000, deadline=time.time() - 1.0)
     with pytest.raises(LimitReached):

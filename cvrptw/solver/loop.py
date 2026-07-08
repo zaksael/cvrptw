@@ -109,9 +109,6 @@ def ils(
                 pbar.update(min(t2, start + time_limit) - start - pbar.n)
                 pbar.set_postfix(best=f'{best_dist:.2f}', iter=made_iters, failed=n_failed_iters)
 
-            if not (p_changed or e_changed or ls_changed):
-                break
-
             current_dist = current_sol.distance
             delta = best_dist - current_dist
             improved = delta > 1e-3
@@ -141,6 +138,9 @@ def ils(
                 ls_time_s=round(t2 - t1, 2),
                 perturb_time_s=round(t1 - t0, 2),
             ))
+
+            if not (p_changed or e_changed or ls_changed):
+                break
     finally:
         if pbar is not None:
             pbar.close()

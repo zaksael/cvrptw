@@ -49,6 +49,26 @@ def test_ils_stats_structure():
         prev_veh = s.n_vehicles
 
 
+def test_ils_records_stats_for_final_no_change_iteration():
+    """The iteration that triggers the nothing-changed break is still recorded.
+
+    Full vehicles (no capacity slack) block perturbation, elimination, and
+    every LS move, so ils exits on iteration 1 via the no-change break.
+    """
+    depot = Customer(0,  0,  0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10,  0, 10, 0,  500, 5)
+    c2    = Customer(2,  0, 10, 10, 0,  500, 5)
+    customers = [depot, c1, c2]
+    inst = Instance(n_vehicles=2, capacity=10, customers=customers,
+                    distances=calculate_distances(customers))
+    greedy = get_greedy_solution(inst)
+    n_iters, _, stats = ils(greedy, max_ls_attempts=2_000, n_perturbation_moves=2,
+                            time_limit=2, rng=random.Random(0))
+    assert n_iters == 1
+    assert len(stats) == n_iters
+    assert not stats[0].improved
+
+
 def test_ils_improves_on_suboptimal_greedy():
     """ILS must actually find and record improvements when greedy is suboptimal.
 

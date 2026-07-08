@@ -1,6 +1,6 @@
 # CVRPTW · Iterated Local Search
 
-A heuristic solver for the **Capacitated Vehicle Routing Problem with Time Windows (CVRPTW)**, written in pure Python (+ NumPy for the distance matrix). Solutions are constructed greedily and then improved with **Iterated Local Search (ILS)** over a cascade of seven route operators.
+A heuristic solver for the **Capacitated Vehicle Routing Problem with Time Windows (CVRPTW)**, written in pure Python (NumPy is used only to compute the distance matrix). Solutions are constructed greedily and then improved with **Iterated Local Search (ILS)** over a cascade of seven route operators.
 
 <p align="center">
   <img src="docs/c108_solution.png" alt="Solved Solomon C108 instance: distance 828.94 with 10 vehicles" width="560">
@@ -16,13 +16,15 @@ Given a depot, a fleet of identical vehicles with limited capacity, and a set of
 
 1. **Greedy construction** — routes are built one vehicle at a time; each step picks the feasible candidate minimizing `distance × (ready_time + 1) × due_date`, a score that favors close, early, urgent customers.
 
-2. **Iterated Local Search** — repeat until the time budget runs out or 20 consecutive iterations fail to improve:
+2. **Iterated Local Search** — repeat until the time budget runs out or `max_failed_iters` (default 20) consecutive iterations fail to improve:
    - **Perturbation**: kick the current solution with random feasible inter-route relocations. The kick strength is *adaptive*: it grows with each non-improving iteration (capped at 3× the base) and resets on improvement.
    - **Route elimination**: try to empty the smallest route by relocating all of its customers into the others (all-or-nothing, feasibility-only) — the move that actually shrinks the fleet; the local search that follows repairs the distance damage.
-   - **Local search**: a first-improvement cascade over seven operators — inter-route *cross* (tail swap), intra-route *relocate*, *2-opt* (geometrically gated: only tried where route segments actually cross), and *or-opt* (2–3 customer chains, both orientations), then inter-route *exchange*, *relocate*, and *or-opt*. Any accepted move restarts the cascade from the top.
+   - **Local search**: a first-improvement cascade over seven operators — inter-route *cross* (tail swap), intra-route *relocate*, *2-opt* (geometrically gated: only tried where route segments actually cross), and *or-opt* (2–3 customer chains, both orientations), then inter-route *exchange*, *relocate*, and *or-opt*. Any accepted move restarts the cascade from the top. `ils(n_neighbors=k)` optionally switches the inter-route operators to a *granular neighborhood*: only moves creating an arc to one of the moved customer's k nearest nodes are evaluated — a large win on distance-dominated instances (it has hit the exact best-known 824.78 on C104 in a 60 s run), off by default because exhaustive scanning keeps a small fleet-size edge on vehicle-contested instances.
    - **Acceptance**: random walk — the search continues from the perturbed solution even when it is worse, while the best solution found is tracked separately, compared lexicographically on (vehicles, distance). (Restart-from-best acceptance is available via `ils(restart_from_best=True)`, but lost an A/B test against the random walk.)
 
-Feasibility checking is the hot path, so it is engineered accordingly: routes carry prefix sums of cumulative demand, distance, and arrival times, and candidate moves are validated with `check_route_from`, which resumes from the unchanged prefix's cached state in O(1) and only replays the modified suffix. Accepted moves build a new solution from shallow copies — nothing is ever deep-copied and vehicles are never mutated after insertion.
+Feasibility checking is the hot path, so it is engineered accordingly: routes carry prefix sums of cumulative demand, distance, and arrival times, and candidate moves are validated with `check_route_from`, which resumes from the unchanged prefix's cached state in O(1) and only replays the modified suffix. The distance matrix is stored as plain nested lists — scalar lookups dominate, and list indexing beats NumPy's per-access overhead by ~1.7× in local-search throughput. Accepted moves build a new solution from shallow copies — nothing is ever deep-copied and vehicles are never mutated after insertion.
+
+Runs are reproducible: every randomized component threads a single `rng`, so `ils(..., rng=random.Random(seed))` gives a deterministic trajectory isolated from global random state. An independent full-rebuild checker, `verify_solution(sol, instance)`, re-validates a solution from scratch and returns any violations — the end-to-end tests assert it on every solver result.
 
 ## Quick start
 
@@ -42,20 +44,30 @@ result = run_instance('data/instances/solomon/c108.txt', results_dir='results')
 print(result.distance, result.n_vehicles, result.improvement_pct)
 ```
 
-Or drive the pieces yourself:
+Or drive the pieces yourself (the headline API is re-exported at the top level):
 
 ```python
-from cvrptw.io import load_instance, save_solution
-from cvrptw.solver import get_greedy_solution, ils, ls_attempts_and_time_limit
+import random
+
+from cvrptw import load_instance, save_solution, get_greedy_solution, ils, ls_attempts_and_time_limit
 
 inst = load_instance('data/instances/solomon/c108.txt')
 greedy = get_greedy_solution(inst)
 
 max_attempts, time_limit = ls_attempts_and_time_limit(inst.n_vehicles, len(inst.customers))
 n_iters, best, stats = ils(greedy, max_attempts, n_perturbation_moves=5,
-                           time_limit=time_limit, verbose=True)
+                           time_limit=time_limit, verbose=True,
+                           rng=random.Random(42))  # optional: reproducible run
 
 save_solution('results/c108.sol', best)
+```
+
+Compare results against the SINTEF best-known solutions:
+
+```python
+from cvrptw import compare_to_bks, format_bks_table
+
+print(format_bks_table(compare_to_bks(results)))  # results from run_benchmark
 ```
 
 The full benchmark — every instance in `data/instances/solomon/`, with progress bars, per-instance `.sol` files and route plots saved to `results/` — runs from the driver notebook:
@@ -71,11 +83,13 @@ cvrptw/
   model/        Customer, Instance, Route, Vehicle, Solution
   io.py         load_instance, save_solution, distance matrix
   operators/    route transforms (cross/exchange/relocate/or_opt/two_opt),
-                feasibility validation, segment-crossing geometry
-  search/       local-search cascade, perturbation, attempt/deadline budget
+                feasibility validation + verify_solution, crossing geometry
+  search/       local-search cascade, perturbation, route elimination,
+                attempt/deadline budget, k-nearest-neighbor sets
   solver/       greedy construction + the ILS loop
   viz.py        route plots and per-operator search statistics
   benchmark.py  run one instance or the whole directory
+  bks.py        Solomon best-known solutions + comparison table
 tests/          one test file per source submodule
 ```
 

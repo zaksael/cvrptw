@@ -2,6 +2,7 @@ import random
 
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Instance
+from cvrptw.operators import verify_solution
 from cvrptw.search import OPERATOR_NAMES
 from cvrptw.solver import (
     IterationStats, get_greedy_solution, ils, ls_attempts_and_time_limit, summarize_operator_stats,
@@ -103,7 +104,9 @@ def test_ils_improves_on_suboptimal_greedy():
 
 
 def test_ils_preserves_all_customers():
-    """ILS must not silently drop any customers across perturbation and local search."""
+    """ILS must not silently drop any customers across perturbation and local
+    search, and the final solution must survive the independent full-rebuild
+    check (verify_solution trusts none of the search's incremental state)."""
     random.seed(42)
     depot = Customer(0,  0, 0,  0, 0, 1000, 0)
     c1    = Customer(1, 10, 0, 10, 0,  800, 5)
@@ -120,6 +123,7 @@ def test_ils_preserves_all_customers():
     greedy = get_greedy_solution(inst)
     _, final, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2, time_limit=2)
     assert not final.missing_customers(inst)
+    assert verify_solution(final, inst) == []
 
 
 def test_ils_restart_from_best_survives_failed_iterations():

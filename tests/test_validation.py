@@ -1,8 +1,8 @@
 import numpy as np
 
 from conftest import ids
-from cvrptw.model import Customer
-from cvrptw.operators import check_route, check_route_from
+from cvrptw.model import Customer, Instance, Solution, Vehicle
+from cvrptw.operators import check_route, check_route_from, verify_solution
 
 
 def test_check_route_valid(tiny):
@@ -109,3 +109,74 @@ def test_check_route_from_rejects_when_waiting_pushes_return_past_depot_closing(
     ok, res = check_route_from([c, depot], src, prefix_end=0)
     assert not ok
     assert res is src                                   # failure returns src untouched
+
+
+def _tiny_instance(tiny, n_vehicles=3):
+    customers, distances, capacity = tiny
+    return Instance(n_vehicles=n_vehicles, capacity=capacity,
+                    customers=customers, distances=distances)
+
+
+def _closed_vehicle(tiny, *stops):
+    customers, distances, capacity = tiny
+    v = Vehicle(capacity, customers[0], distances)
+    for c in stops:
+        v.visit(c)
+    v.visit(customers[0])
+    return v
+
+
+def test_verify_solution_valid(tiny):
+    customers, _, _ = tiny
+    _, c1, c2, c3 = customers
+    sol = Solution([_closed_vehicle(tiny, c1, c2), _closed_vehicle(tiny, c3)])
+    assert verify_solution(sol, _tiny_instance(tiny)) == []
+
+
+def test_verify_solution_flags_vehicle_limit(tiny):
+    customers, _, _ = tiny
+    _, c1, c2, c3 = customers
+    sol = Solution([_closed_vehicle(tiny, c) for c in (c1, c2, c3)])
+    problems = verify_solution(sol, _tiny_instance(tiny, n_vehicles=2))
+    assert any('vehicle limit' in p for p in problems)
+
+
+def test_verify_solution_flags_capacity_violation(tiny):
+    """visit() is unconditional, so an over-capacity route can be built; the
+    full-rebuild check must catch it."""
+    customers, _, _ = tiny
+    _, c1, c2, c3 = customers
+    sol = Solution([_closed_vehicle(tiny, c1, c2, c3)])  # demand 30 > capacity replayed below
+    inst = _tiny_instance(tiny)
+    inst.capacity = 20
+    problems = verify_solution(sol, inst)
+    assert any('infeasible' in p for p in problems)
+
+
+def test_verify_solution_flags_duplicate_and_missing(tiny):
+    customers, _, _ = tiny
+    _, c1, _, c3 = customers
+    sol = Solution([_closed_vehicle(tiny, c1), _closed_vehicle(tiny, c1)])
+    problems = verify_solution(sol, _tiny_instance(tiny))
+    assert any('visited in routes' in p for p in problems)
+    assert any('missing' in p for p in problems)
+
+
+def test_verify_solution_flags_corrupted_cached_distance(tiny):
+    customers, _, _ = tiny
+    _, c1, c2, _ = customers
+    v = _closed_vehicle(tiny, c1, c2)
+    v.route._distance += 5.0
+    sol = Solution([v, _closed_vehicle(tiny, customers[3])])
+    problems = verify_solution(sol, _tiny_instance(tiny))
+    assert any('cached distance' in p for p in problems)
+
+
+def test_verify_solution_flags_route_not_anchored_at_depot(tiny):
+    customers, distances, capacity = tiny
+    depot, c1, c2, c3 = customers
+    v = Vehicle(capacity, depot, distances)
+    v.visit(c1)  # never closed to depot
+    sol = Solution([v, _closed_vehicle(tiny, c2), _closed_vehicle(tiny, c3)])
+    problems = verify_solution(sol, _tiny_instance(tiny))
+    assert any('does not start and end at the depot' in p for p in problems)

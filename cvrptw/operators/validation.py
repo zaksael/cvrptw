@@ -1,4 +1,40 @@
-from ..model import Customer, Route, Vehicle
+from ..model import Customer, Instance, Route, Solution, Vehicle
+
+
+def verify_solution(sol: Solution, instance: Instance) -> list[str]:
+    """Independent full-rebuild check of a Solution; returns violations (empty = valid).
+
+    Deliberately trusts none of the incremental state the search maintains:
+    every route is replayed from scratch through check_route. Meant as a
+    guard in end-to-end tests against incremental-state bugs — not a hot path.
+    """
+    problems = []
+    if len(sol.vehicles) > instance.n_vehicles:
+        problems.append(f'{len(sol.vehicles)} routes exceed the {instance.n_vehicles}-vehicle limit')
+    depot_id = instance.depot.cust_id
+    seen: dict[int, int] = {}
+    for r_i, v in enumerate(sol.vehicles):
+        route = v.route.customers
+        if len(route) < 2 or route[0].cust_id != depot_id or route[-1].cust_id != depot_id:
+            problems.append(f'route {r_i} does not start and end at the depot')
+            continue
+        ok, rebuilt = check_route(route, instance.capacity, instance.distances)
+        if not ok:
+            problems.append(f'route {r_i} is infeasible (capacity or time windows)')
+        elif abs(rebuilt.distance() - v.distance()) > 1e-6:
+            problems.append(
+                f'route {r_i} cached distance {v.distance():.6f} != rebuilt {rebuilt.distance():.6f}')
+        for c in route[1:-1]:
+            if c.cust_id == depot_id:
+                problems.append(f'route {r_i} visits the depot mid-route')
+            elif c.cust_id in seen:
+                problems.append(f'customer {c.cust_id} visited in routes {seen[c.cust_id]} and {r_i}')
+            else:
+                seen[c.cust_id] = r_i
+    missing = sol.missing_customers(instance)
+    if missing:
+        problems.append(f'customers missing: {sorted(missing)}')
+    return problems
 
 
 def check_route(route: list[Customer], capacity: int, distances: list[list[float]]) -> tuple[bool, Vehicle]:

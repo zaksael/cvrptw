@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from cvrptw.benchmark import BenchmarkResult, run_benchmark, run_instance
+from cvrptw.io import load_instance
+from cvrptw.operators import verify_solution
 
 
 def _write_instance(path: Path, n_vehicles: int, capacity: int, customers: list[tuple[int, ...]]) -> None:
@@ -41,6 +43,7 @@ def test_run_instance_writes_results(tmp_path):
     assert result.n_iters >= 1
     visited = {c.cust_id for v in result.solution for c in v.route.customers}
     assert visited == {0, 1, 2, 3}
+    assert verify_solution(result.solution, load_instance(path)) == []
 
     sol_path = tmp_path / 'inst.sol'
     png_path = tmp_path / 'inst.png'

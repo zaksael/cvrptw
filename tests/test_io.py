@@ -23,6 +23,15 @@ def test_read_customer_count_and_depot():
     assert inst.depot.y == 50
 
 
+def test_load_instance_ignores_blank_lines(tmp_path):
+    text = C108.read_text()
+    padded = tmp_path / 'c108_padded.txt'
+    padded.write_text(text + '\n\n   \n')
+    inst = load_instance(padded)
+    assert inst.n_vehicles == 25
+    assert len(inst.customers) == 101
+
+
 def test_save_solution_format(tiny):
     customers, distances, capacity = tiny
     depot, c1, c2 = customers[0], customers[1], customers[2]

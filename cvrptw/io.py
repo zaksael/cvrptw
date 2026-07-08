@@ -12,6 +12,8 @@ def load_instance(file_path: str | Path) -> Instance:
             if i in [1, 2, 3, 4, 6, 7, 8, 9]:
                 continue
             line = line.strip()
+            if not line:
+                continue
             if i == 5:
                 n_vehicles, capacity = map(int, line.split())
             else:

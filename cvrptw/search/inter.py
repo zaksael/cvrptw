@@ -1,6 +1,6 @@
 import random
 
-from ..model import Solution
+from ..model import Customer, Solution, Vehicle
 from ..operators import check_route_from, customer_indices
 from ._util import shuffled_vehicle_indices
 from .budget import AttemptBudget
@@ -68,11 +68,11 @@ def apply_relocate(sol: Solution, budget: AttemptBudget, rng: random.Random = ra
     return False, sol, 0.0
 
 
-def cross_suffix(v1, i, v2, j):
+def cross_suffix(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
     return v2.route.customers[j:], v1.route.customers[i:]
 
 
-def exchange_suffix(v1, i, v2, j):
+def exchange_suffix(v1: Vehicle, i: int, v2: Vehicle, j: int) -> tuple[list[Customer], list[Customer]]:
     return ([v2.route.customers[j]] + v1.route.customers[i + 1:],
             [v1.route.customers[i]] + v2.route.customers[j + 1:])
 

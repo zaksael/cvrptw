@@ -1,5 +1,7 @@
 import random
 
+import pytest
+
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Instance
 from cvrptw.operators import verify_solution
@@ -376,3 +378,40 @@ def test_ls_attempts_and_time_limit_scales_with_instance_size():
     assert ls_attempts_and_time_limit(25, 101) == (250_000, 600)
     assert ls_attempts_and_time_limit(26, 101) == (1_000_000, 1800)   # vehicles over threshold
     assert ls_attempts_and_time_limit(25, 102) == (1_000_000, 1800)   # customers over threshold
+
+
+def test_ils_seeded_regression():
+    """Tripwire: exact best distance for a fixed seed on a fixed instance.
+
+    The run exercises the full stack — greedy, perturbation, elimination
+    (3 -> 2 vehicles), the whole LS cascade — over 21 iterations and is
+    bit-reproducible. Any change to move discovery order, rng consumption,
+    or acceptance logic shifts this value. That can be deliberate (a new
+    operator, reordered candidate loops) — update the expected values then —
+    but a shift from a supposedly behavior-neutral refactor means the
+    trajectory silently drifted.
+    """
+    depot = Customer(0,  0,  0,  0, 0, 1000, 0)
+    cs = [
+        Customer(1, 10,  0, 10, 0,  800, 5),
+        Customer(2, 20,  5, 10, 0,  800, 5),
+        Customer(3, 15, 15, 10, 50, 800, 5),
+        Customer(4,  0, 20, 10, 0,  800, 5),
+        Customer(5, -10, 10, 10, 0, 800, 5),
+        Customer(6, -5, -10, 10, 0, 800, 5),
+        Customer(7,  5, -15, 10, 0, 800, 5),
+        Customer(8, 18, -5, 10, 0,  800, 5),
+    ]
+    customers = [depot] + cs
+    inst = Instance(n_vehicles=3, capacity=50, customers=customers,
+                    distances=calculate_distances(customers))
+    greedy = get_greedy_solution(inst)
+    assert greedy.distance == pytest.approx(158.11295121898218)
+
+    n_iters, best, _ = ils(greedy, max_ls_attempts=50_000, n_perturbation_moves=2,
+                           time_limit=60, rng=random.Random(42))
+
+    assert n_iters == 21
+    assert len(best) == 2
+    assert best.distance == pytest.approx(132.32764823109753)
+    assert verify_solution(best, inst) == []

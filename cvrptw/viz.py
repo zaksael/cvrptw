@@ -31,17 +31,20 @@ def _draw_routes(ax, sol: Solution, depot_markersize: int) -> None:
         ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=depot_markersize)
 
 
-def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None) -> None:
+def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None,
+                  show: bool = True) -> None:
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     _draw_routes(ax, sol, depot_markersize=20)
-    plt.title(title)
+    ax.set_title(title)
     if save_path is not None:
         fig.savefig(save_path, dpi=100, bbox_inches='tight')
-    plt.show()
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
-def draw_best_solutions(values: np.ndarray) -> None:
+def draw_best_solutions(values: list[tuple[str, float, int, Solution]], show: bool = True) -> None:
     n = len(values)
     if n == 0:
         return
@@ -54,9 +57,12 @@ def draw_best_solutions(values: np.ndarray) -> None:
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
         _draw_routes(ax, sol, depot_markersize=10)
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
-def plot_ils_stats(stats: list, title: str = '') -> None:
+def plot_ils_stats(stats: list, title: str = '', show: bool = True) -> None:
     if not stats:
         return
 
@@ -92,4 +98,6 @@ def plot_ils_stats(stats: list, title: str = '') -> None:
     ax2.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    plt.close(fig)

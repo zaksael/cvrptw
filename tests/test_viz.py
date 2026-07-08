@@ -3,6 +3,8 @@ matplotlib.use('Agg')
 
 from types import SimpleNamespace
 
+import matplotlib.pyplot as plt
+
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Solution, Vehicle
 from cvrptw.viz import draw_best_solutions, draw_solution, plot_ils_stats
@@ -63,3 +65,22 @@ def test_plot_ils_stats_does_not_raise():
 
 def test_plot_ils_stats_empty_list_does_not_raise():
     plot_ils_stats([], title='test')
+
+
+def test_draw_functions_close_their_figures(tmp_path):
+    """Repeated calls (e.g. run_benchmark over 56 instances) must not
+    accumulate open figures."""
+    sol = _make_solution()
+    stats = [SimpleNamespace(elapsed_s=1.0, distance=100.0, improved=False,
+                             gains={'cross': 1.0})]
+    draw_solution(sol, save_path=tmp_path / 's.png')
+    draw_best_solutions([('inst_a.txt', sol.distance, len(sol), sol)])
+    plot_ils_stats(stats)
+    assert plt.get_fignums() == []
+
+
+def test_draw_solution_show_false_still_saves(tmp_path):
+    save_path = tmp_path / 'solution.png'
+    draw_solution(_make_solution(), save_path=save_path, show=False)
+    assert save_path.exists()
+    assert plt.get_fignums() == []

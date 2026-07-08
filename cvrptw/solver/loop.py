@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from tqdm.auto import tqdm
 
 from ..model import Solution
-from ..search import OPERATOR_NAMES, local_search, perturbation, try_eliminate_route
+from ..search import OPERATOR_NAMES, build_neighbor_sets, local_search, perturbation, try_eliminate_route
 
 
 @dataclass
@@ -57,12 +57,18 @@ def ils(
     minimize_vehicles: bool = True,
     max_elim_failures: int | None = 5,
     max_failed_iters: int = 20,
+    n_neighbors: int | None = None,
     rng: random.Random = random,
 ) -> tuple[int, Solution, ILSStats]:
     """Iterated local search.
 
     Stops after max_failed_iters consecutive non-improving iterations or
     when time_limit (seconds) is exhausted, whichever comes first.
+
+    n_neighbors, when set, activates the granular neighborhood: inter-route
+    local-search operators only evaluate moves that create at least one arc
+    to one of the moved customer's n_neighbors nearest nodes. None evaluates
+    every candidate (exhaustive scan).
 
     rng defaults to the global random module; pass a seeded random.Random
     for a run whose trajectory is isolated from (and does not disturb)
@@ -79,6 +85,10 @@ def ils(
     after long failure streaks do happen, so it is never fully disabled);
     a success resets the back-off. None never throttles.
     """
+    neighbors = None
+    if n_neighbors is not None and sol.vehicles:
+        neighbors = build_neighbor_sets(sol.vehicles[0].dist_matrix, n_neighbors)
+
     best_sol = current_sol = sol
     best_dist = sol.distance
     made_iters = 0
@@ -106,7 +116,7 @@ def ils(
                 n_elim_failures = 0 if e_changed else n_elim_failures + 1
             t1 = time.perf_counter()
             dist_before_ls = current_sol.distance
-            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng)
+            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng, neighbors=neighbors)
             t2 = time.perf_counter()
 
             if pbar is not None:

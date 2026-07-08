@@ -415,3 +415,20 @@ def test_ils_seeded_regression():
     assert len(best) == 2
     assert best.distance == pytest.approx(132.32764823109753)
     assert verify_solution(best, inst) == []
+
+
+def test_ils_granular_neighborhood_produces_valid_solution():
+    """n_neighbors gates inter-route LS moves; the run must still improve on
+    suboptimal greedy and survive the independent full-rebuild check."""
+    depot = Customer(0, 0, 0, 0, 0, 1000, 0)
+    a = Customer(1, 10, 0, 1, 0, 1000, 0)
+    b = Customer(2, 20, 0, 1, 0, 1000, 0)
+    c = Customer(3, 10.5, 5, 1, 0, 1000, 0)
+    customers = [depot, a, b, c]
+    inst = Instance(n_vehicles=1, capacity=10, customers=customers,
+                    distances=calculate_distances(customers))
+    greedy = get_greedy_solution(inst)
+    _, best, _ = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2,
+                     time_limit=2, n_neighbors=2, rng=random.Random(42))
+    assert best.distance < greedy.distance - 1e-3
+    assert verify_solution(best, inst) == []

@@ -4,22 +4,27 @@ from functools import partial
 
 from ..model import Solution
 from .budget import AttemptBudget, LimitReached
-from .inter import apply_operator, apply_or_opt, apply_relocate, cross_suffix, exchange_suffix
+from .inter import (
+    apply_operator, apply_or_opt, apply_relocate,
+    cross_gate, cross_suffix, exchange_gate, exchange_suffix,
+)
 from .intra import intra_or_opt, intra_relocate, intra_two_opt
 
 # First-improvement cascade: each operator is tried only if all previous ones
-# fail on this pass; any accepted move restarts from the top.
+# fail on this pass; any accepted move restarts from the top. The third column
+# marks the inter-route operators that take the granular-neighborhood gate
+# (intra routes are short — gating them isn't worth the plumbing).
 _CASCADE = (
-    ('cross', partial(apply_operator, operator=cross_suffix, with_last=True)),
-    ('intra_relocate', intra_relocate),
-    ('two_opt', intra_two_opt),
-    ('intra_or_opt', intra_or_opt),
-    ('exchange', partial(apply_operator, operator=exchange_suffix, with_last=False)),
-    ('relocate', apply_relocate),
-    ('or_opt', apply_or_opt),
+    ('cross', partial(apply_operator, operator=cross_suffix, gate=cross_gate, with_last=True), True),
+    ('intra_relocate', intra_relocate, False),
+    ('two_opt', intra_two_opt, False),
+    ('intra_or_opt', intra_or_opt, False),
+    ('exchange', partial(apply_operator, operator=exchange_suffix, gate=exchange_gate, with_last=False), True),
+    ('relocate', apply_relocate, True),
+    ('or_opt', apply_or_opt, True),
 )
 
-OPERATOR_NAMES = tuple(name for name, _ in _CASCADE)
+OPERATOR_NAMES = tuple(name for name, _, _ in _CASCADE)
 
 
 @dataclass
@@ -30,7 +35,10 @@ class LSStats:
 
 
 def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | None = None,
-                 rng: random.Random = random) -> tuple[bool, Solution, LSStats]:
+                 rng: random.Random = random,
+                 neighbors: list[set[int]] | None = None) -> tuple[bool, Solution, LSStats]:
+    """neighbors (from build_neighbor_sets) restricts inter-route operators to
+    moves creating at least one short arc; None evaluates every candidate."""
     budget = AttemptBudget(max_attempts=max_attempts, deadline=deadline)
 
     result = sol
@@ -41,8 +49,11 @@ def local_search(sol: Solution, max_attempts: int = 200_000, deadline: float | N
         improved = True
         while improved:
             improved = False
-            for name, op in _CASCADE:
-                done, result, gain = op(result, budget=budget, rng=rng)
+            for name, op, gated in _CASCADE:
+                if gated:
+                    done, result, gain = op(result, budget=budget, rng=rng, neighbors=neighbors)
+                else:
+                    done, result, gain = op(result, budget=budget, rng=rng)
                 if done:
                     changes_made = True
                     improvements[name] += 1

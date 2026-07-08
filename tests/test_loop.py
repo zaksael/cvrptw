@@ -152,6 +152,31 @@ def test_ils_restart_from_best_survives_failed_iterations():
     assert not final.missing_customers(inst)
 
 
+def test_ils_max_failed_iters_bounds_the_run():
+    """max_failed_iters caps consecutive non-improving iterations.
+
+    Same forced-non-improving setup as the restart_from_best test above:
+    greedy is optimal and c3's vehicle has capacity slack, so every
+    iteration fails and the run stops exactly at the cap.
+    """
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+    greedy = get_greedy_solution(inst)
+    n_iters, _, stats = ils(greedy, max_ls_attempts=5_000, n_perturbation_moves=2,
+                            time_limit=5, max_failed_iters=3, rng=random.Random(42))
+    assert n_iters == 3
+    assert all(not s.improved for s in stats)
+
+
 def test_ils_adaptive_perturbation_escalates_on_failures(monkeypatch):
     """adaptive_perturbation must grow the kick with consecutive failed iterations.
 

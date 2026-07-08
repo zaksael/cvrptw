@@ -56,9 +56,13 @@ def ils(
     adaptive_perturbation: bool = True,
     minimize_vehicles: bool = True,
     max_elim_failures: int | None = 5,
+    max_failed_iters: int = 20,
     rng: random.Random = random,
 ) -> tuple[int, Solution, ILSStats]:
     """Iterated local search.
+
+    Stops after max_failed_iters consecutive non-improving iterations or
+    when time_limit (seconds) is exhausted, whichever comes first.
 
     rng defaults to the global random module; pass a seeded random.Random
     for a run whose trajectory is isolated from (and does not disturb)
@@ -87,7 +91,7 @@ def ils(
     if verbose:
         tqdm.write(f'Initial : distance = {best_dist:.2f}, vehicles = {len(best_sol)}')
     try:
-        while time.perf_counter() - start < time_limit and n_failed_iters < 20:
+        while time.perf_counter() - start < time_limit and n_failed_iters < max_failed_iters:
             made_iters += 1
             moves = n_perturbation_moves
             if adaptive_perturbation:

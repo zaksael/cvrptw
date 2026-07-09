@@ -432,3 +432,61 @@ def test_ils_granular_neighborhood_produces_valid_solution():
                      time_limit=2, n_neighbors=2, rng=random.Random(42))
     assert best.distance < greedy.distance - 1e-3
     assert verify_solution(best, inst) == []
+
+
+def test_ils_ungates_ls_after_successful_elimination(monkeypatch):
+    """The local-search pass right after a successful route elimination must
+    run exhaustively (neighbors=None) even when n_neighbors is set — the
+    feasibility-only reinsertions need repair moves the gate would filter
+    out. All other passes must receive the built neighbor sets.
+
+    Same forced-non-improving setup as the throttle test above; elimination
+    successes are faked (returning the solution unchanged) so which
+    iterations "succeed" is fully scripted.
+    """
+    import cvrptw.solver.loop as loop_mod
+
+    depot = Customer(0,  0, 0,  0, 0, 1000, 0)
+    c1    = Customer(1, 10, 0, 10, 0,  800, 5)
+    c2    = Customer(2, 20, 0, 10, 0,  800, 5)
+    c3    = Customer(3,  0,10, 10, 0,  800, 5)
+    customers = [depot, c1, c2, c3]
+    inst = Instance(
+        n_vehicles=3,
+        capacity=20,
+        customers=customers,
+        distances=calculate_distances(customers),
+    )
+
+    success_iters = {2, 5}  # 1-indexed elimination calls that fake a success
+    elim_outcomes: list[bool] = []
+
+    def scripted_eliminate(sol, rng=random):
+        ok = len(elim_outcomes) + 1 in success_iters
+        elim_outcomes.append(ok)
+        return ok, sol
+
+    real_ls = loop_mod.local_search
+    neighbors_seen = []
+
+    def recording_ls(sol, **kwargs):
+        neighbors_seen.append(kwargs.get('neighbors'))
+        return real_ls(sol, **kwargs)
+
+    monkeypatch.setattr(loop_mod, 'try_eliminate_route', scripted_eliminate)
+    monkeypatch.setattr(loop_mod, 'local_search', recording_ls)
+
+    greedy = get_greedy_solution(inst)
+    made_iters, _, _ = ils(greedy, max_ls_attempts=2_000, n_perturbation_moves=2,
+                           time_limit=5, max_elim_failures=None, n_neighbors=2,
+                           rng=random.Random(42))
+
+    # max_elim_failures=None → one elimination call per iteration, so the
+    # i-th LS pass pairs with the i-th elimination outcome
+    assert made_iters > max(success_iters)
+    assert len(neighbors_seen) == len(elim_outcomes) == made_iters
+    for eliminated, neighbors in zip(elim_outcomes, neighbors_seen):
+        if eliminated:
+            assert neighbors is None
+        else:
+            assert neighbors is not None

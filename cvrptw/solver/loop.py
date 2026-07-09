@@ -68,7 +68,10 @@ def ils(
     n_neighbors, when set, activates the granular neighborhood: inter-route
     local-search operators only evaluate moves that create at least one arc
     to one of the moved customer's n_neighbors nearest nodes. None evaluates
-    every candidate (exhaustive scan).
+    every candidate (exhaustive scan). The local-search pass immediately
+    following a successful route elimination always runs exhaustively —
+    the feasibility-only reinsertions need repair moves that are often
+    long arcs the gate would filter out.
 
     rng defaults to the global random module; pass a seeded random.Random
     for a run whose trajectory is isolated from (and does not disturb)
@@ -116,7 +119,8 @@ def ils(
                 n_elim_failures = 0 if e_changed else n_elim_failures + 1
             t1 = time.perf_counter()
             dist_before_ls = current_sol.distance
-            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng, neighbors=neighbors)
+            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng,
+                                                             neighbors=None if e_changed else neighbors)
             t2 = time.perf_counter()
 
             if pbar is not None:

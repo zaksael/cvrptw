@@ -1,13 +1,14 @@
-import matplotlib
-matplotlib.use('Agg')
-
 from pathlib import Path
 
 import pytest
 
-from cvrptw.benchmark import BenchmarkResult, run_benchmark, run_instance
+from cvrptw.benchmark import DEFAULT_SOLUTIONS_DIR, BenchmarkResult, run_benchmark, run_instance
 from cvrptw.io import load_instance
 from cvrptw.operators import verify_solution
+
+
+def test_default_solutions_dir_points_into_data():
+    assert DEFAULT_SOLUTIONS_DIR.parts[-3:] == ('data', 'solutions', 'solomon')
 
 
 def _write_instance(path: Path, n_vehicles: int, capacity: int, customers: list[tuple[int, ...]]) -> None:
@@ -46,9 +47,7 @@ def test_run_instance_writes_results(tmp_path):
     assert verify_solution(result.solution, load_instance(path)) == []
 
     sol_path = tmp_path / 'inst.sol'
-    png_path = tmp_path / 'inst.png'
     assert sol_path.exists() and sol_path.stat().st_size > 0
-    assert png_path.exists() and png_path.stat().st_size > 0
 
 
 def test_run_instance_creates_missing_results_dir(tmp_path):
@@ -59,7 +58,6 @@ def test_run_instance_creates_missing_results_dir(tmp_path):
     run_instance(path, results_dir=results_dir, verbose=False)
 
     assert (results_dir / 'inst.sol').exists()
-    assert (results_dir / 'inst.png').exists()
 
 
 def test_run_instance_without_results_dir(tmp_path):

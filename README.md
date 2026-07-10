@@ -40,7 +40,7 @@ Solve a single instance:
 ```python
 from cvrptw.benchmark import run_instance
 
-result = run_instance('data/instances/solomon/c108.txt', results_dir='results')
+result = run_instance('data/instances/solomon/c108.txt', results_dir='data/solutions/solomon')
 print(result.distance, result.n_vehicles, result.improvement_pct)
 ```
 
@@ -59,7 +59,7 @@ n_iters, best, stats = ils(greedy, max_attempts, n_perturbation_moves=5,
                            time_limit=time_limit, verbose=True,
                            rng=random.Random(42))  # optional: reproducible run
 
-save_solution('results/c108.sol', best)
+save_solution('data/solutions/solomon/c108.sol', best)
 ```
 
 Compare results against the SINTEF best-known solutions:
@@ -70,7 +70,7 @@ from cvrptw import compare_to_bks, format_bks_table
 print(format_bks_table(compare_to_bks(results)))  # results from run_benchmark
 ```
 
-The full benchmark — every instance in `data/instances/solomon/`, with progress bars, per-instance `.sol` files and route plots saved to `results/` — runs from the driver notebook:
+The full benchmark — every instance in `data/instances/solomon/`, with progress bars and per-instance `.sol` files saved to `data/solutions/solomon/` — runs from the driver notebook:
 
 ```bash
 uv run jupyter notebook notebooks/ILS.ipynb
@@ -97,7 +97,7 @@ tests/          one test file per source submodule
 
 **Instances** (`data/instances/solomon/*.txt`) — Solomon format: line 5 holds `n_vehicles capacity`; each remaining line is `id x y demand ready_time due_date service_time`. Customer 0 is the depot.
 
-**Solutions** (`results/*.sol`) — one route per line as space-separated `customer_id arrival_time` pairs, starting and ending at the depot.
+**Solutions** (`data/solutions/solomon/*.sol`) — one route per line as space-separated `customer_id arrival_time` pairs, starting and ending at the depot.
 
 ## Results
 

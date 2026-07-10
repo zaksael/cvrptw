@@ -8,9 +8,9 @@ from tqdm.auto import tqdm
 from .io import load_instance, save_solution
 from .model import Solution
 from .solver import ILSStats, get_greedy_solution, ils, ls_attempts_and_time_limit, summarize_operator_stats
-from .viz import draw_solution
 
 _REPO_ROOT = Path(__file__).parent.parent
+DEFAULT_SOLUTIONS_DIR = _REPO_ROOT / 'data' / 'solutions' / 'solomon'
 
 
 @dataclass
@@ -74,11 +74,6 @@ def run_instance(
         results_dir = Path(results_dir)
         results_dir.mkdir(parents=True, exist_ok=True)
         save_solution(results_dir / path.with_suffix('.sol').name, sol)
-        draw_solution(
-            sol,
-            title=f'{path.name}: dist={sol.distance:.2f}, vehicles={len(sol)}',
-            save_path=results_dir / path.with_suffix('.png').name,
-        )
 
     return BenchmarkResult(
         name=path.name,
@@ -99,7 +94,7 @@ def run_instance(
 
 def run_benchmark(
     instances_dir: Path | str = _REPO_ROOT / 'data' / 'instances' / 'solomon',
-    results_dir: Path | str | None = _REPO_ROOT / 'results',
+    results_dir: Path | str | None = DEFAULT_SOLUTIONS_DIR,
     perturbation_moves: int = 5,
     **ils_kwargs,
 ) -> list[BenchmarkResult]:

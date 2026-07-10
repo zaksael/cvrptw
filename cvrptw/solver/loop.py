@@ -42,6 +42,13 @@ def ls_attempts_and_time_limit(n_vehicles: int, n_customers: int) -> tuple[int, 
     return 250_000, 600
 
 
+def stop_after_from_stats(stats: ILSStats) -> tuple[int, int]:
+    """Replay certificate of a finished ils run: pass the result as
+    ils(..., stop_after=...) with the same seed (and code version) to
+    reproduce the run bit-for-bit, clock-free."""
+    return len(stats), stats[-1].ls_attempts
+
+
 _ILS_BAR_FORMAT = '{desc}: {percentage:3.0f}%|{bar}| {n:.2f}/{total:.2f}s [{elapsed}<{remaining}]{postfix}'
 
 
@@ -58,12 +65,24 @@ def ils(
     max_elim_failures: int | None = 5,
     max_failed_iters: int = 20,
     n_neighbors: int | None = None,
+    stop_after: tuple[int, int] | None = None,
     rng: random.Random = random,
 ) -> tuple[int, Solution, ILSStats]:
     """Iterated local search.
 
     Stops after max_failed_iters consecutive non-improving iterations or
     when time_limit (seconds) is exhausted, whichever comes first.
+
+    stop_after=(n_iters, final_iter_ls_attempts) replays a previous run's
+    stopping point clock-free: the time limit is ignored (no deadline is
+    passed to local search), the run stops after n_iters iterations, and the
+    final iteration's local search gets max_attempts=final_iter_ls_attempts —
+    cutting it at the exact candidate where the original run's deadline
+    fired (both cuts raise LimitReached from the same AttemptBudget.tick).
+    With the same rng seed and code version this reproduces the original
+    time-limited run bit-for-bit; derive the tuple from a finished run with
+    stop_after_from_stats(stats). Only the final iteration can be
+    deadline-cut, so earlier iterations need no special handling.
 
     n_neighbors, when set, activates the granular neighborhood: inter-route
     local-search operators only evaluate moves that create at least one arc
@@ -100,11 +119,15 @@ def ils(
     stats: ILSStats = []
 
     start = time.perf_counter()
+    deadline = None if stop_after is not None else start + time_limit
     pbar = tqdm(total=time_limit, desc=desc, unit='s', leave=False, bar_format=_ILS_BAR_FORMAT) if verbose else None
     if verbose:
         tqdm.write(f'Initial : distance = {best_dist:.2f}, vehicles = {len(best_sol)}')
     try:
-        while time.perf_counter() - start < time_limit and n_failed_iters < max_failed_iters:
+        while ((stop_after is not None or time.perf_counter() - start < time_limit)
+               and n_failed_iters < max_failed_iters):
+            if stop_after is not None and made_iters >= stop_after[0]:
+                break
             made_iters += 1
             moves = n_perturbation_moves
             if adaptive_perturbation:
@@ -119,7 +142,10 @@ def ils(
                 n_elim_failures = 0 if e_changed else n_elim_failures + 1
             t1 = time.perf_counter()
             dist_before_ls = current_sol.distance
-            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=max_ls_attempts, deadline=start + time_limit, rng=rng,
+            attempts = max_ls_attempts
+            if stop_after is not None and made_iters == stop_after[0]:
+                attempts = stop_after[1]
+            ls_changed, current_sol, ls_stats = local_search(current_sol, max_attempts=attempts, deadline=deadline, rng=rng,
                                                              neighbors=None if e_changed else neighbors)
             t2 = time.perf_counter()
 

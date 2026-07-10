@@ -1,13 +1,16 @@
+import itertools
 import random
+from types import SimpleNamespace
 
 import pytest
 
 from cvrptw.io import calculate_distances
 from cvrptw.model import Customer, Instance
 from cvrptw.operators import verify_solution
-from cvrptw.search import OPERATOR_NAMES
+from cvrptw.search import OPERATOR_NAMES, local_search
 from cvrptw.solver import (
-    IterationStats, get_greedy_solution, ils, ls_attempts_and_time_limit, summarize_operator_stats,
+    IterationStats, get_greedy_solution, ils, ls_attempts_and_time_limit,
+    stop_after_from_stats, summarize_operator_stats,
 )
 
 
@@ -380,17 +383,9 @@ def test_ls_attempts_and_time_limit_scales_with_instance_size():
     assert ls_attempts_and_time_limit(25, 102) == (1_000_000, 1800)   # customers over threshold
 
 
-def test_ils_seeded_regression():
-    """Tripwire: exact best distance for a fixed seed on a fixed instance.
-
-    The run exercises the full stack — greedy, perturbation, elimination
-    (3 -> 2 vehicles), the whole LS cascade — over 21 iterations and is
-    bit-reproducible. Any change to move discovery order, rng consumption,
-    or acceptance logic shifts this value. That can be deliberate (a new
-    operator, reordered candidate loops) — update the expected values then —
-    but a shift from a supposedly behavior-neutral refactor means the
-    trajectory silently drifted.
-    """
+def _regression_instance() -> Instance:
+    """The fixed 8-customer instance of the seeded regression tripwire;
+    greedy is suboptimal on it (158.11 -> 132.33 over 21 seeded iterations)."""
     depot = Customer(0,  0,  0,  0, 0, 1000, 0)
     cs = [
         Customer(1, 10,  0, 10, 0,  800, 5),
@@ -403,8 +398,22 @@ def test_ils_seeded_regression():
         Customer(8, 18, -5, 10, 0,  800, 5),
     ]
     customers = [depot] + cs
-    inst = Instance(n_vehicles=3, capacity=50, customers=customers,
+    return Instance(n_vehicles=3, capacity=50, customers=customers,
                     distances=calculate_distances(customers))
+
+
+def test_ils_seeded_regression():
+    """Tripwire: exact best distance for a fixed seed on a fixed instance.
+
+    The run exercises the full stack — greedy, perturbation, elimination
+    (3 -> 2 vehicles), the whole LS cascade — over 21 iterations and is
+    bit-reproducible. Any change to move discovery order, rng consumption,
+    or acceptance logic shifts this value. That can be deliberate (a new
+    operator, reordered candidate loops) — update the expected values then —
+    but a shift from a supposedly behavior-neutral refactor means the
+    trajectory silently drifted.
+    """
+    inst = _regression_instance()
     greedy = get_greedy_solution(inst)
     assert greedy.distance == pytest.approx(158.11295121898218)
 
@@ -490,3 +499,75 @@ def test_ils_ungates_ls_after_successful_elimination(monkeypatch):
             assert neighbors is None
         else:
             assert neighbors is not None
+
+
+def _run_and_replay(max_ls_attempts: int):
+    """Run seeded ils on the regression instance, then replay it via
+    stop_after_from_stats with a fresh copy of the same seed."""
+    inst = _regression_instance()
+    greedy = get_greedy_solution(inst)
+    args = dict(max_ls_attempts=max_ls_attempts, n_perturbation_moves=2, time_limit=60)
+    n1, best1, stats1 = ils(greedy, **args, rng=random.Random(42))
+    n2, best2, stats2 = ils(greedy, **args, rng=random.Random(42),
+                            stop_after=stop_after_from_stats(stats1))
+    return inst, (n1, best1, stats1), (n2, best2, stats2)
+
+
+def _assert_identical_runs(inst, run1, run2):
+    n1, best1, stats1 = run1
+    n2, best2, stats2 = run2
+    assert n2 == n1
+    assert len(best2) == len(best1)
+    assert best2.distance == pytest.approx(best1.distance)
+    assert [[c.cust_id for c in v.route.customers] for v in best2] \
+        == [[c.cust_id for c in v.route.customers] for v in best1]
+    assert [s.ls_attempts for s in stats2] == [s.ls_attempts for s in stats1]
+    assert [s.distance for s in stats2] == [s.distance for s in stats1]
+    assert verify_solution(best2, inst) == []
+
+
+def test_stop_after_replays_streak_ended_run():
+    """Replaying a run that ended on the failure streak reproduces it
+    bit-for-bit, including the final iteration's attempt-capped LS call."""
+    inst, run1, run2 = _run_and_replay(max_ls_attempts=50_000)
+    _assert_identical_runs(inst, run1, run2)
+
+
+def test_stop_after_replays_attempt_cut_run():
+    """Same when every iteration's LS is cut by LimitReached (tiny budget)."""
+    inst, run1, run2 = _run_and_replay(max_ls_attempts=200)
+    _assert_identical_runs(inst, run1, run2)
+
+
+def test_stop_after_stops_at_exact_iteration():
+    inst = _regression_instance()
+    greedy = get_greedy_solution(inst)
+    n_iters, _, stats = ils(greedy, max_ls_attempts=50_000, n_perturbation_moves=2,
+                            time_limit=60, rng=random.Random(42), stop_after=(3, 10**9))
+    assert n_iters == 3
+    assert len(stats) == 3
+
+
+def test_deadline_cut_is_identical_to_attempt_cut(monkeypatch):
+    """The clock-free replay contract: a local_search pass cut by the
+    deadline stops at the same candidate — with the same result — as one cut
+    by max_attempts at the recorded tick. The deadline is checked when
+    n_attempts & 63 == 1, so a fake clock crossing it on its second reading
+    fires at tick 65."""
+    inst = _regression_instance()
+    sol = get_greedy_solution(inst)
+
+    calls = itertools.count(1)
+    monkeypatch.setattr('cvrptw.search.budget.time',
+                        SimpleNamespace(perf_counter=lambda: next(calls)))
+    _, res_deadline, stats_deadline = local_search(
+        sol, max_attempts=10_000, deadline=1.5, rng=random.Random(7))
+    assert stats_deadline.n_attempts == 65
+
+    _, res_attempts, stats_attempts = local_search(
+        sol, max_attempts=65, deadline=None, rng=random.Random(7))
+    assert stats_attempts.n_attempts == 65
+    assert res_attempts.distance == res_deadline.distance
+    assert [[c.cust_id for c in v.route.customers] for v in res_attempts] \
+        == [[c.cust_id for c in v.route.customers] for v in res_deadline]
+    assert stats_attempts.improvements == stats_deadline.improvements

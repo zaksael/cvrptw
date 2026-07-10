@@ -24,7 +24,7 @@ Given a depot, a fleet of identical vehicles with limited capacity, and a set of
 
 Feasibility checking is the hot path, so it is engineered accordingly: routes carry prefix sums of cumulative demand, distance, and arrival times, and candidate moves are validated with `check_route_from`, which resumes from the unchanged prefix's cached state in O(1) and only replays the modified suffix. The distance matrix is stored as plain nested lists — scalar lookups dominate, and list indexing beats NumPy's per-access overhead by ~1.7× in local-search throughput. Accepted moves build a new solution from shallow copies — nothing is ever deep-copied and vehicles are never mutated after insertion.
 
-Runs are reproducible: every randomized component threads a single `rng`, so `ils(..., rng=random.Random(seed))` gives a deterministic trajectory isolated from global random state. An independent full-rebuild checker, `verify_solution(sol, instance)`, re-validates a solution from scratch and returns any violations — the end-to-end tests assert it on every solver result.
+Runs are reproducible: every randomized component threads a single `rng`, so `ils(..., rng=random.Random(seed))` gives a deterministic trajectory isolated from global random state. That covers even runs cut off by the time limit — the seed determines everything except where the clock stopped the run, and `stop_after=stop_after_from_stats(stats)` replays a finished run's exact stopping point (down to the local-search candidate the deadline interrupted) without a clock. An independent full-rebuild checker, `verify_solution(sol, instance)`, re-validates a solution from scratch and returns any violations — the end-to-end tests assert it on every solver result.
 
 ## Quick start
 

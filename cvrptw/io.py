@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .model import Customer, Instance, Solution
+from .model import Customer, Instance, Solution, Vehicle
 
 
 def load_instance(file_path: str | Path) -> Instance:
@@ -28,6 +28,27 @@ def calculate_distances(customers: list[Customer]) -> list[list[float]]:
     # .tolist(): scalar dm[a][b] lookups in the search hot path are several
     # times faster on nested lists than on an ndarray
     return np.hypot(diffs[..., 0], diffs[..., 1]).tolist()
+
+
+def load_solution(file_path: str | Path, instance: Instance) -> Solution:
+    """Rebuild a Solution from a .sol file written by save_solution.
+
+    Each line's customer ids are replayed through Vehicle.visit against the
+    instance, so arrival times are recomputed rather than trusted from the
+    file. Blank lines are ignored.
+    """
+    by_id = {c.cust_id: c for c in instance.customers}
+    vehicles = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            tokens = line.split()
+            if not tokens:
+                continue
+            v = Vehicle(instance.capacity, instance.depot, instance.distances)
+            for cust_id in map(int, tokens[2::2]):  # tokens[0:2] is the leading depot stop
+                v.visit(by_id[cust_id])
+            vehicles.append(v)
+    return Solution(vehicles)
 
 
 def save_solution(file_path: str | Path, sol: Solution) -> None:

@@ -9,6 +9,8 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .io import load_instance, load_solution
+
 if TYPE_CHECKING:
     from .model import Solution
 
@@ -42,6 +44,32 @@ def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None =
     if show:
         plt.show()
     plt.close(fig)
+
+
+def render_solution_images(
+    names: list[str],
+    instances_dir: Path | str,
+    solutions_dir: Path | str,
+    out_dir: Path | str,
+    show: bool = False,
+) -> list[Path]:
+    """Render one route plot per instance name from its saved solution.
+
+    For each name, loads instances_dir/{name}.txt and solutions_dir/{name}.sol
+    and saves out_dir/{name}.png (out_dir is created if missing). Batch
+    renderer, so show defaults to False. Returns the saved image paths.
+    """
+    instances_dir, solutions_dir, out_dir = Path(instances_dir), Path(solutions_dir), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    saved = []
+    for name in names:
+        inst = load_instance(instances_dir / f'{name}.txt')
+        sol = load_solution(solutions_dir / f'{name}.sol', inst)
+        save_path = out_dir / f'{name}.png'
+        draw_solution(sol, title=f'{name}: distance {sol.distance:.2f}, {len(sol)} vehicles',
+                      save_path=save_path, show=show)
+        saved.append(save_path)
+    return saved
 
 
 def draw_best_solutions(values: list[tuple[str, float, int, Solution]], show: bool = True) -> None:

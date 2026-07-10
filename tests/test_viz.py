@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
 
-from cvrptw.io import calculate_distances
+from cvrptw.io import calculate_distances, save_solution
 from cvrptw.model import Customer, Solution, Vehicle
-from cvrptw.viz import draw_best_solutions, draw_solution, plot_ils_stats
+from cvrptw.viz import draw_best_solutions, draw_solution, plot_ils_stats, render_solution_images
 
 
 def test_draw_solution_saves_png_file(tmp_path):
@@ -83,4 +83,23 @@ def test_draw_solution_show_false_still_saves(tmp_path):
     save_path = tmp_path / 'solution.png'
     draw_solution(_make_solution(), save_path=save_path, show=False)
     assert save_path.exists()
+    assert plt.get_fignums() == []
+
+
+def test_render_solution_images_from_saved_files(tmp_path):
+    instances_dir = tmp_path / 'instances'
+    solutions_dir = tmp_path / 'solutions'
+    out_dir = tmp_path / 'out' / 'nested'  # must be created by the renderer
+    instances_dir.mkdir()
+    solutions_dir.mkdir()
+
+    lines = ['header'] * 4 + ['2 10'] + ['header'] * 4
+    lines += ['0 0 0 0 0 1000 0', '1 10 0 1 0 1000 0']
+    (instances_dir / 'inst.txt').write_text('\n'.join(lines) + '\n')
+    save_solution(solutions_dir / 'inst.sol', _make_solution())
+
+    saved = render_solution_images(['inst'], instances_dir, solutions_dir, out_dir)
+
+    assert saved == [out_dir / 'inst.png']
+    assert saved[0].exists() and saved[0].stat().st_size > 0
     assert plt.get_fignums() == []

@@ -86,20 +86,59 @@ def test_draw_solution_show_false_still_saves(tmp_path):
     assert plt.get_fignums() == []
 
 
-def test_render_solution_images_from_saved_files(tmp_path):
-    instances_dir = tmp_path / 'instances'
-    solutions_dir = tmp_path / 'solutions'
-    out_dir = tmp_path / 'out' / 'nested'  # must be created by the renderer
+def _write_tiny_instance_and_solution(instances_dir, solutions_dir):
     instances_dir.mkdir()
     solutions_dir.mkdir()
-
     lines = ['header'] * 4 + ['2 10'] + ['header'] * 4
     lines += ['0 0 0 0 0 1000 0', '1 10 0 1 0 1000 0']
     (instances_dir / 'inst.txt').write_text('\n'.join(lines) + '\n')
     save_solution(solutions_dir / 'inst.sol', _make_solution())
 
+
+def test_render_solution_images_from_saved_files(tmp_path):
+    instances_dir = tmp_path / 'instances'
+    solutions_dir = tmp_path / 'solutions'
+    out_dir = tmp_path / 'out' / 'nested'  # must be created by the renderer
+    _write_tiny_instance_and_solution(instances_dir, solutions_dir)
+
     saved = render_solution_images(['inst'], instances_dir, solutions_dir, out_dir)
 
     assert saved == [out_dir / 'inst.png']
+    assert saved[0].exists() and saved[0].stat().st_size > 0
+    assert plt.get_fignums() == []
+
+
+def test_draw_solution_with_background(tmp_path):
+    save_path = tmp_path / 'solution.png'
+    draw_solution(_make_solution(), save_path=save_path, show=False,
+                  background=_make_solution())
+    assert save_path.exists()
+    assert save_path.stat().st_size > 0
+    assert plt.get_fignums() == []
+
+
+def test_render_solution_images_with_bks_dir(tmp_path):
+    instances_dir = tmp_path / 'instances'
+    solutions_dir = tmp_path / 'solutions'
+    bks_dir = tmp_path / 'bks'
+    _write_tiny_instance_and_solution(instances_dir, solutions_dir)
+    bks_dir.mkdir()
+    save_solution(bks_dir / 'inst.sol', _make_solution())
+
+    saved = render_solution_images(['inst'], instances_dir, solutions_dir,
+                                   tmp_path / 'out', bks_dir=bks_dir)
+
+    assert saved[0].exists() and saved[0].stat().st_size > 0
+    assert plt.get_fignums() == []
+
+
+def test_render_solution_images_bks_dir_missing_file_still_renders(tmp_path):
+    instances_dir = tmp_path / 'instances'
+    solutions_dir = tmp_path / 'solutions'
+    _write_tiny_instance_and_solution(instances_dir, solutions_dir)
+
+    saved = render_solution_images(['inst'], instances_dir, solutions_dir,
+                                   tmp_path / 'out', bks_dir=tmp_path / 'no-such-dir')
+
     assert saved[0].exists() and saved[0].stat().st_size > 0
     assert plt.get_fignums() == []

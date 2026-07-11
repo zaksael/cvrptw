@@ -33,10 +33,23 @@ def _draw_routes(ax, sol: Solution, depot_markersize: int) -> None:
         ax.plot(c_x[0], c_y[0], color='green', marker='s', markersize=depot_markersize)
 
 
+def _draw_background_routes(ax, sol: Solution) -> None:
+    """Draw all routes in one flat light grey behind the foreground solution
+    (foreground lines default to zorder 2). No depot marker — the foreground
+    draws it."""
+    for v in sol:
+        c_x = [c.x for c in v.route.customers]
+        c_y = [c.y for c in v.route.customers]
+        ax.plot(c_x, c_y, linestyle='-', color='0.8', linewidth=1.2,
+                markerfacecolor='0.8', marker='o', markersize=3, zorder=1)
+
+
 def draw_solution(sol: Solution, title: str = '', save_path: Path | str | None = None,
-                  show: bool = True) -> None:
+                  show: bool = True, background: Solution | None = None) -> None:
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
+    if background is not None:
+        _draw_background_routes(ax, background)
     _draw_routes(ax, sol, depot_markersize=20)
     ax.set_title(title)
     if save_path is not None:
@@ -52,12 +65,16 @@ def render_solution_images(
     solutions_dir: Path | str,
     out_dir: Path | str,
     show: bool = False,
+    bks_dir: Path | str | None = None,
 ) -> list[Path]:
     """Render one route plot per instance name from its saved solution.
 
     For each name, loads instances_dir/{name}.txt and solutions_dir/{name}.sol
-    and saves out_dir/{name}.png (out_dir is created if missing). Batch
-    renderer, so show defaults to False. Returns the saved image paths.
+    and saves out_dir/{name}.png (out_dir is created if missing). If bks_dir
+    holds a {name}.sol, that solution is drawn behind ours in light grey and
+    its numbers are appended to the title; a missing file just skips the
+    background. Batch renderer, so show defaults to False. Returns the saved
+    image paths.
     """
     instances_dir, solutions_dir, out_dir = Path(instances_dir), Path(solutions_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -65,9 +82,13 @@ def render_solution_images(
     for name in names:
         inst = load_instance(instances_dir / f'{name}.txt')
         sol = load_solution(solutions_dir / f'{name}.sol', inst)
+        title = f'{name}: distance {sol.distance:.2f}, {len(sol)} vehicles'
+        bks = None
+        if bks_dir is not None and (bks_path := Path(bks_dir) / f'{name}.sol').exists():
+            bks = load_solution(bks_path, inst)
+            title += f' (BKS {bks.distance:.2f}, {len(bks)} vehicles)'
         save_path = out_dir / f'{name}.png'
-        draw_solution(sol, title=f'{name}: distance {sol.distance:.2f}, {len(sol)} vehicles',
-                      save_path=save_path, show=show)
+        draw_solution(sol, title=title, save_path=save_path, show=show, background=bks)
         saved.append(save_path)
     return saved
 

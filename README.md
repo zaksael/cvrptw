@@ -113,20 +113,20 @@ All 56 Solomon 100-customer instances, 60 s budget per instance, seeded run (`rn
 | RC2 | 8 | +6.34% | 29 (26) | 5/8 | 5.2 min |
 | **all** | **56** | **+2.05%** | **445 (405)** | **27/56** | **25.6 min** |
 
-One solved instance per Solomon class from this run — the `.sol` files live in [`data/solutions/solomon/`](data/solutions/solomon/), and the images are rendered from them with `uv run python scripts/render_readme_images.py`:
+One solved instance per Solomon class from this run — the light-grey routes underneath are the SINTEF best-known solution (fetched with `uv run python scripts/fetch_bks_solutions.py` into [`data/solutions/solomon-bks/`](data/solutions/solomon-bks/)). The `.sol` files live in [`data/solutions/solomon/`](data/solutions/solomon/), and the images are rendered from them with `uv run python scripts/render_readme_images.py`:
 
 <table>
   <tr>
-    <td><img src="docs/solutions/c101.png" alt="c101 solution: distance 828.94, 10 vehicles" width="400"></td>
-    <td><img src="docs/solutions/c201.png" alt="c201 solution: distance 591.56, 3 vehicles" width="400"></td>
+    <td><img src="docs/solutions/c101.png" alt="c101 solution: distance 828.94, 10 vehicles (BKS 828.94, 10 vehicles)" width="400"></td>
+    <td><img src="docs/solutions/c201.png" alt="c201 solution: distance 591.56, 3 vehicles (BKS 591.56, 3 vehicles)" width="400"></td>
   </tr>
   <tr>
-    <td><img src="docs/solutions/r101.png" alt="r101 solution: distance 1664.70, 20 vehicles" width="400"></td>
-    <td><img src="docs/solutions/r201.png" alt="r201 solution: distance 1263.38, 4 vehicles" width="400"></td>
+    <td><img src="docs/solutions/r101.png" alt="r101 solution: distance 1664.70, 20 vehicles (BKS 1650.80, 19 vehicles)" width="400"></td>
+    <td><img src="docs/solutions/r201.png" alt="r201 solution: distance 1263.38, 4 vehicles (BKS 1252.37, 4 vehicles)" width="400"></td>
   </tr>
   <tr>
-    <td><img src="docs/solutions/rc101.png" alt="rc101 solution: distance 1685.47, 16 vehicles" width="400"></td>
-    <td><img src="docs/solutions/rc201.png" alt="rc201 solution: distance 1534.84, 4 vehicles" width="400"></td>
+    <td><img src="docs/solutions/rc101.png" alt="rc101 solution: distance 1685.47, 16 vehicles (BKS 1696.95, 14 vehicles)" width="400"></td>
+    <td><img src="docs/solutions/rc201.png" alt="rc201 solution: distance 1534.84, 4 vehicles (BKS 1406.94, 4 vehicles)" width="400"></td>
   </tr>
 </table>
 

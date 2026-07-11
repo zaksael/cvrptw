@@ -2,8 +2,10 @@
 """Render the README solution images from saved .sol files.
 
 For each instance name, reads data/instances/solomon/{name}.txt and
-data/solutions/solomon/{name}.sol and writes docs/solutions/{name}.png.
-Defaults to the six instances shown in the README (one per Solomon class).
+data/solutions/solomon/{name}.sol and writes docs/solutions/{name}.png,
+with the best-known solution (data/solutions/solomon-bks/{name}.sol, if
+fetched) drawn behind ours in light grey. Defaults to the six instances
+shown in the README (one per Solomon class).
 
 Usage:
     uv run python scripts/render_readme_images.py [name ...]
@@ -32,6 +34,7 @@ def main() -> None:
         instances_dir=REPO_ROOT / 'data' / 'instances' / 'solomon',
         solutions_dir=REPO_ROOT / 'data' / 'solutions' / 'solomon',
         out_dir=REPO_ROOT / 'docs' / 'solutions',
+        bks_dir=REPO_ROOT / 'data' / 'solutions' / 'solomon-bks',
     )
     for path in saved:
         print(path.relative_to(REPO_ROOT))

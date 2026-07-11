@@ -2,7 +2,13 @@ import os
 import tempfile
 from pathlib import Path
 
-from cvrptw.io import load_instance, load_solution, save_solution
+from cvrptw.io import (
+    load_instance,
+    load_solution,
+    parse_sintef_routes,
+    save_solution,
+    solution_from_routes,
+)
 from cvrptw.model import Instance, Solution, Vehicle
 from cvrptw.operators import verify_solution
 from cvrptw.solver import get_greedy_solution
@@ -82,6 +88,57 @@ def test_load_solution_ignores_blank_lines(tiny, tmp_path):
 
     loaded = load_solution(path, inst)
     assert len(loaded) == 1
+
+
+SINTEF_SNIPPET = """\
+Instance name : tiny
+Authors       : Someone
+Date          : 01.01.2004 12:00:00
+Reference     : Some reference
+
+Solution
+Route  1 : 1 2
+Route  2 : 3
+"""
+
+
+def test_parse_sintef_routes():
+    assert parse_sintef_routes(SINTEF_SNIPPET) == [[1, 2], [3]]
+
+
+def test_parse_sintef_routes_empty_text():
+    assert parse_sintef_routes('Instance name : x\n') == []
+
+
+def test_solution_from_routes_builds_depot_anchored_solution(tiny):
+    customers, distances, capacity = tiny
+    inst = Instance(2, capacity, customers, distances)
+
+    sol = solution_from_routes([[1, 2], [3]], inst)
+
+    assert len(sol) == 2
+    assert [c.cust_id for c in sol.vehicles[0].route.customers] == [0, 1, 2, 0]
+    assert [c.cust_id for c in sol.vehicles[1].route.customers] == [0, 3, 0]
+    assert verify_solution(sol, inst) == []
+
+
+def test_solution_from_routes_matches_load_solution(tiny, tmp_path):
+    customers, distances, capacity = tiny
+    depot, c1, c2 = customers[0], customers[1], customers[2]
+    v = Vehicle(capacity, depot, distances)
+    v.visit(c1)
+    v.visit(c2)
+    v.visit(depot)
+    inst = Instance(2, capacity, customers, distances)
+
+    path = tmp_path / 'tiny.sol'
+    save_solution(path, Solution(vehicles=[v]))
+    loaded = load_solution(path, inst)
+    built = solution_from_routes([[1, 2]], inst)
+
+    assert [c.cust_id for c in built.vehicles[0].route.customers] == \
+        [c.cust_id for c in loaded.vehicles[0].route.customers]
+    assert built.vehicles[0].route.time_points == loaded.vehicles[0].route.time_points
 
 
 def test_save_solution_format(tiny):

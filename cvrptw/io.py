@@ -30,6 +30,38 @@ def calculate_distances(customers: list[Customer]) -> list[list[float]]:
     return np.hypot(diffs[..., 0], diffs[..., 1]).tolist()
 
 
+def parse_sintef_routes(text: str) -> list[list[int]]:
+    """Extract customer-id routes from a SINTEF detailed-solution file.
+
+    Route lines look like 'Route  1 : 81 78 76' — customer ids only, depot
+    implied at both ends. Header/metadata lines are ignored.
+    """
+    routes = []
+    for line in text.splitlines():
+        if not line.lstrip().lower().startswith('route'):
+            continue
+        _, _, ids = line.partition(':')
+        routes.append([int(t) for t in ids.split()])
+    return routes
+
+
+def solution_from_routes(routes: list[list[int]], instance: Instance) -> Solution:
+    """Build a Solution by replaying customer-id routes through Vehicle.visit.
+
+    Each route is a list of customer ids WITHOUT the depot at either end;
+    the depot stops (and all arrival times) are reconstructed here.
+    """
+    by_id = {c.cust_id: c for c in instance.customers}
+    vehicles = []
+    for route in routes:
+        v = Vehicle(instance.capacity, instance.depot, instance.distances)
+        for cust_id in route:
+            v.visit(by_id[cust_id])
+        v.visit(instance.depot)
+        vehicles.append(v)
+    return Solution(vehicles)
+
+
 def load_solution(file_path: str | Path, instance: Instance) -> Solution:
     """Rebuild a Solution from a .sol file written by save_solution.
 
@@ -37,18 +69,16 @@ def load_solution(file_path: str | Path, instance: Instance) -> Solution:
     instance, so arrival times are recomputed rather than trusted from the
     file. Blank lines are ignored.
     """
-    by_id = {c.cust_id: c for c in instance.customers}
-    vehicles = []
+    routes = []
     with open(file_path, 'r') as f:
         for line in f:
             tokens = line.split()
             if not tokens:
                 continue
-            v = Vehicle(instance.capacity, instance.depot, instance.distances)
-            for cust_id in map(int, tokens[2::2]):  # tokens[0:2] is the leading depot stop
-                v.visit(by_id[cust_id])
-            vehicles.append(v)
-    return Solution(vehicles)
+            # tokens[0:2] is the leading depot stop; ids at even positions,
+            # the last of which is the closing depot stop
+            routes.append([int(t) for t in tokens[2:-2:2]])
+    return solution_from_routes(routes, instance)
 
 
 def save_solution(file_path: str | Path, sol: Solution) -> None:
